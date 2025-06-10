@@ -266,14 +266,5 @@ User's resume data:
 4. Add tests if applicable
 5. Submit a pull request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, email support@resumeflow.com or create an issue in the repository.
-
----
 
 Built with ❤️ using Django and Next.js 
