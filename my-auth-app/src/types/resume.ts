@@ -1,4 +1,3 @@
-
 export interface PersonalInfo {
     name: string;
     email: string;
@@ -57,6 +56,66 @@ export interface TemplateOptions {
     fontFamily: string;
     fontSize: string;
     textAlign: TextAlign;
+    colors?: {
+        primary: string;
+        secondary: string;
+        accent: string;
+    };
+    spacing?: {
+        sectionSpacing: string;
+        itemSpacing: string;
+    };
+}
+
+export interface ResumeTemplate {
+    id: string;
+    name: string;
+    template_type: string;
+    description: string;
+    preview_image?: string;
+    css_styles: {
+        fontFamily: string;
+        fontSize: string;
+        lineHeight: string;
+        colors: {
+            primary: string;
+            secondary: string;
+            accent: string;
+        };
+        spacing: {
+            sectionSpacing: string;
+            itemSpacing: string;
+        };
+    };
+    layout_config: {
+        layout: string;
+        sections_order: string[];
+        show_photo: boolean;
+        bullet_style: string;
+    };
+    ats_score: number;
+    is_premium: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SavedResume {
+    id: string;
+    title: string;
+    template?: ResumeTemplate;
+    template_name?: string;
+    personal_info: PersonalInfo;
+    professional_summary: string;
+    experience: ExperienceEntry[];
+    education: EducationEntry[];
+    skills: SkillEntry[];
+    projects: ProjectEntry[];
+    additional_sections: Record<string, any>;
+    template_options: TemplateOptions;
+    is_public: boolean;
+    pdf_file?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export const initialResumeData: ResumeData = {
@@ -80,4 +139,13 @@ export const initialTemplateOptions: TemplateOptions = {
     fontFamily: 'Inter, sans-serif',
     fontSize: '11px',
     textAlign: 'left',
+    colors: {
+        primary: '#000000',
+        secondary: '#333333',
+        accent: '#2E86AB'
+    },
+    spacing: {
+        sectionSpacing: '16px',
+        itemSpacing: '8px'
+    }
 };

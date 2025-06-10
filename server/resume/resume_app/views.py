@@ -1,5 +1,5 @@
 import os
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -8,11 +8,26 @@ from django.contrib.auth import get_user_model, authenticate
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 import requests
-from .serializers import UserRegistrationSerializer, UserSerializer, SocialAuthSerializer
+from .serializers import (
+    UserRegistrationSerializer, UserSerializer, SocialAuthSerializer,
+    UserProfileSerializer, ResumeSerializer, ResumeListSerializer, 
+    ResumeTemplateSerializer
+)
+from .models import Resume, ResumeTemplate
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import json
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.units import inch
+from io import BytesIO
+import uuid
 
 User = get_user_model()
 
-# Create your views here.
+# Authentication Views
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register(request):
@@ -177,10 +192,18 @@ def linkedin_auth(request):
             return Response({'error': 'Invalid LinkedIn token'}, status=status.HTTP_400_BAD_REQUEST)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
 @api_view(['GET'])
 def profile(request):
-    return Response(UserSerializer(request.user).data)
+    return Response(UserProfileSerializer(request.user).data)
+
+@api_view(['PUT', 'PATCH'])
+def update_profile(request):
+    serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def logout(request):
@@ -192,4 +215,181 @@ def logout(request):
         return Response(status=status.HTTP_205_RESET_CONTENT)
     except Exception as e:
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+# Resume Template Views
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def resume_templates(request):
+    templates = ResumeTemplate.objects.all().order_by('-ats_score', 'name')
+    serializer = ResumeTemplateSerializer(templates, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def resume_template_detail(request, template_id):
+    template = get_object_or_404(ResumeTemplate, id=template_id)
+    serializer = ResumeTemplateSerializer(template)
+    return Response(serializer.data)
+
+# Resume CRUD Views
+@api_view(['GET'])
+def user_resumes(request):
+    resumes = Resume.objects.filter(user=request.user)
+    serializer = ResumeListSerializer(resumes, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+def create_resume(request):
+    data = request.data.copy()
+    data['user'] = request.user.id
+    serializer = ResumeSerializer(data=data)
+    if serializer.is_valid():
+        resume = serializer.save(user=request.user)
+        return Response(ResumeSerializer(resume).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def resume_detail(request, resume_id):
+    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+    serializer = ResumeSerializer(resume)
+    return Response(serializer.data)
+
+@api_view(['PUT', 'PATCH'])
+def update_resume(request, resume_id):
+    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+    serializer = ResumeSerializer(resume, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+def delete_resume(request, resume_id):
+    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+    resume.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+# PDF Generation View
+@api_view(['POST'])
+def generate_resume_pdf(request, resume_id):
+    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+    
+    try:
+        # Create PDF buffer
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                              rightMargin=72, leftMargin=72,
+                              topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Create custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor='#2E86AB'
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=12
+        )
+        
+        # Build PDF content
+        story = []
+        
+        # Personal Info
+        personal_info = resume.personal_info
+        if personal_info.get('name'):
+            story.append(Paragraph(personal_info['name'], title_style))
+        
+        contact_info = []
+        if personal_info.get('email'):
+            contact_info.append(personal_info['email'])
+        if personal_info.get('phone'):
+            contact_info.append(personal_info['phone'])
+        if personal_info.get('linkedin'):
+            contact_info.append(personal_info['linkedin'])
+        
+        if contact_info:
+            story.append(Paragraph(' | '.join(contact_info), normal_style))
+        
+        story.append(Spacer(1, 12))
+        
+        # Professional Summary
+        if resume.professional_summary:
+            story.append(Paragraph("PROFESSIONAL SUMMARY", heading_style))
+            story.append(Paragraph(resume.professional_summary, normal_style))
+        
+        # Experience
+        if resume.experience:
+            story.append(Paragraph("EXPERIENCE", heading_style))
+            for exp in resume.experience:
+                exp_title = f"<b>{exp.get('jobTitle', '')}</b> at {exp.get('company', '')}"
+                story.append(Paragraph(exp_title, normal_style))
+                
+                exp_details = f"{exp.get('location', '')} | {exp.get('startDate', '')} - {exp.get('endDate', '')}"
+                story.append(Paragraph(exp_details, normal_style))
+                
+                if exp.get('description'):
+                    story.append(Paragraph(exp['description'], normal_style))
+                story.append(Spacer(1, 6))
+        
+        # Education
+        if resume.education:
+            story.append(Paragraph("EDUCATION", heading_style))
+            for edu in resume.education:
+                edu_title = f"<b>{edu.get('degree', '')}</b> - {edu.get('institution', '')}"
+                story.append(Paragraph(edu_title, normal_style))
+                
+                edu_details = f"{edu.get('location', '')} | {edu.get('graduationDate', '')}"
+                story.append(Paragraph(edu_details, normal_style))
+                story.append(Spacer(1, 6))
+        
+        # Skills
+        if resume.skills:
+            story.append(Paragraph("SKILLS", heading_style))
+            skills_text = ', '.join([skill.get('name', '') for skill in resume.skills if skill.get('name')])
+            story.append(Paragraph(skills_text, normal_style))
+        
+        # Projects
+        if resume.projects:
+            story.append(Paragraph("PROJECTS", heading_style))
+            for proj in resume.projects:
+                proj_title = f"<b>{proj.get('name', '')}</b>"
+                story.append(Paragraph(proj_title, normal_style))
+                
+                if proj.get('description'):
+                    story.append(Paragraph(proj['description'], normal_style))
+                
+                if proj.get('technologies'):
+                    story.append(Paragraph(f"Technologies: {proj['technologies']}", normal_style))
+                story.append(Spacer(1, 6))
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        # Create response
+        response = HttpResponse(buffer.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{resume.title}.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        return Response({'error': f'Failed to generate PDF: {str(e)}'}, 
+                       status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

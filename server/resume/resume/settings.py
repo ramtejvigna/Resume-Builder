@@ -127,10 +127,13 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only for development
 
 AUTHENTICATION_BACKENDS = (
     'social_core.backends.google.GoogleOAuth2',
@@ -164,8 +167,9 @@ SOCIAL_AUTH_PIPELINE = (
 
 AUTH_USER_MODEL = 'resume_app.CustomUser'
 
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:9002/dashboard'
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:9002/login?error=social_auth_failed'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:3000/dashboard'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:3000/login?error=social_auth_failed'
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -182,6 +186,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -17,10 +17,13 @@ const NavLinks = ({ inSheet = false }: { inSheet?: boolean }) => {
         <Link href="/dashboard">Dashboard</Link>
       </Button>
       <Button variant={inSheet ? "ghost" : "ghost"} asChild className={inSheet ? "w-full justify-start" : ""}>
-        <Link href="/dashboard/resumes">My Resumes</Link>
+        <Link href="/templates">Templates</Link>
       </Button>
       <Button variant={inSheet ? "ghost" : "ghost"} asChild className={inSheet ? "w-full justify-start" : ""}>
-        <Link href="/dashboard/templates">Templates</Link>
+        <Link href="/builder">Builder</Link>
+      </Button>
+      <Button variant={inSheet ? "ghost" : "ghost"} asChild className={inSheet ? "w-full justify-start" : ""}>
+        <Link href="/my-resumes">My Resumes</Link>
       </Button>
       {inSheet && <DropdownMenuSeparator />}
       {inSheet && (
@@ -55,19 +58,31 @@ export default function DashboardHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.profile_picture || `https://placehold.co/100x100.png?text=${user.first_name[0]}-${user.last_name[0]}`} alt={user.first_name || "User"} data-ai-hint="profile avatar" />
-                    <AvatarFallback>{user.last_name}</AvatarFallback>
+                    <AvatarImage 
+                      src={user.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name || user.username || 'User')}&background=2E86AB&color=fff`} 
+                      alt={user.first_name || user.username || "User"} 
+                      data-ai-hint="profile avatar" 
+                    />
+                    <AvatarFallback>
+                      {(user.first_name?.[0] || user.username?.[0] || 'U').toUpperCase()}
+                      {(user.last_name?.[0] || '').toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
-                  <div className="font-medium">{(user.first_name + " " + user.last_name) || "User"}</div>
+                  <div className="font-medium">
+                    {user.first_name && user.last_name 
+                      ? `${user.first_name} ${user.last_name}`
+                      : user.first_name || user.username || "User"
+                    }
+                  </div>
                   <div className="text-xs text-muted-foreground">{user.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile"><UserCircle className="mr-2 h-4 w-4" />Profile</Link>
+                  <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" />Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>

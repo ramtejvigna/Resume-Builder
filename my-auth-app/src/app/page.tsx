@@ -1,32 +1,73 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  FileText,
+  Zap,
+  Award,
+  Download,
+  Eye,
+  Users,
+  ArrowRight,
+  CheckCircle,
+  Star,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Shield,
+  Clock,
+  Palette,
+  BarChart3,
+  ChevronRight,
+  Play,
+  MessageSquare,
+  Globe,
+  Smartphone,
+  Brain
+} from "lucide-react";
+import LandingHeader from "@/components/landing/Header";
+import HeroSection from "@/components/landing/HeroSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import TemplatesShowcase from "@/components/landing/TemplatesShowcase";
+import StatsSection from "@/components/landing/StatsSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import CTASection from "@/components/landing/CTASection";
+import Footer from "@/components/landing/Footer";
 
-export default function HomePage() {
-  const router = useRouter();
-  // Ensure useAuth is called conditionally or provide a default mock if AuthProvider might not be ready.
-  // However, AuthProvider should wrap RootLayout, making useAuth always available.
-  const { loading, user } = useAuth();
+const fadeInUp = {
+  initial: { opacity: 0, y: 60 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, ease: "easeOut" }
+};
 
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
+const staggerChildren = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
     }
-  }, [user, loading, router]);
+  }
+};
 
+export default function LandingPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-foreground font-medium">Loading ResumeFlow...</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <LandingHeader />
+      
+      <main className="flex flex-col">
+        <HeroSection />
+        <StatsSection />
+        <FeaturesSection />
+        <TemplatesShowcase />
+        <TestimonialsSection />
+        <CTASection />
+      </main>
+      
+      <Footer />
     </div>
   );
 }
