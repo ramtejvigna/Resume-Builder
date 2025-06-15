@@ -9,7 +9,6 @@ export interface Template {
   id: string;
   name: string;
   category: string;
-  previewImage: string;
   rating: number;
   popularity: number;
   isPremium?: boolean;
@@ -40,27 +39,6 @@ export default function TemplateCard({ template, style }: TemplateCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 flex flex-col group" style={style}>
       <CardHeader className="p-0 relative">
-        <div className="aspect-[4/5] relative bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-          {template.previewImage && template.previewImage !== "/placeholder-template.png" ? (
-            <Image
-              src={template.previewImage}
-              alt={template.name}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              data-ai-hint={template.aiHint || "resume design"}
-            />
-          ) : (
-            <div className="text-center p-8">
-              <div className="w-16 h-20 bg-white rounded shadow-md mx-auto mb-4 flex items-center justify-center">
-                <div className="text-xs text-gray-400 font-mono">
-                  RESUME
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 font-medium">{template.name}</p>
-            </div>
-          )}
-        </div>
-        
         {/* Premium Badge */}
         {template.isPremium && (
           <div className="absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-2 py-1 text-xs font-semibold rounded-full shadow-md flex items-center">
@@ -77,11 +55,11 @@ export default function TemplateCard({ template, style }: TemplateCardProps) {
       </CardHeader>
 
       <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg font-headline group-hover:text-accent transition-colors line-clamp-2">
+        <CardTitle className="text-lg font-headline group-hover:text-primary transition-colors line-clamp-2">
           {template.name}
         </CardTitle>
         <div className="flex items-center text-xs text-muted-foreground mt-2">
-          <Tag className="h-3 w-3 mr-1 text-accent" />
+          <Tag className="h-3 w-3 mr-1 text-primary" />
           <span className="capitalize">{template.category.replace('_', ' ')}</span>
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-3">
@@ -98,7 +76,7 @@ export default function TemplateCard({ template, style }: TemplateCardProps) {
       <CardFooter className="p-4 pt-0 flex space-x-2">
         <Link href={`/templates?preview=${template.id}`} className="flex-1">
           <Button size="sm" variant="outline" className="w-full group/btn">
-            <Eye className="mr-2 h-4 w-4 group-hover/btn:text-accent transition-colors" /> 
+            <Eye className="mr-2 h-4 w-4 group-hover/btn:text-primary transition-colors" /> 
             Preview
           </Button>
         </Link>

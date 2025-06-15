@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from "@/lib/utils";
 import { Mail, Phone, Linkedin, Github, Globe, Briefcase, GraduationCap, Lightbulb, FolderGit2, FileText as FileTextIcon } from 'lucide-react';
 import Image from 'next/image';
+import { useState, useEffect, useMemo } from 'react';
 
 interface ResumePreviewProps {
   resumeData: ResumeData;
@@ -19,8 +20,8 @@ interface ResumePreviewProps {
 const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, onEdit, isPreviewMode = false, selectedTemplate }) => {
   const { personalInfo, summary, experience, education, skills, projects } = resumeData;
 
-  // Get template-specific styles
-  const getTemplateStyles = () => {
+  // Get template-specific styles using useMemo to prevent unnecessary recalculations
+  const templateStyles = useMemo(() => {
     console.log("Selected template:", selectedTemplate); // Debug log
     if (selectedTemplate && selectedTemplate.css_styles) {
       console.log("Template CSS styles:", selectedTemplate.css_styles); // Debug log
@@ -46,11 +47,9 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
       colors: { primary: '#000000', secondary: '#333333', accent: '#2E86AB' },
       spacing: { sectionSpacing: '16px', itemSpacing: '8px' }
     };
-  };
+  }, [selectedTemplate]);
 
-  const templateStyles = getTemplateStyles();
-
-  const contentStyle = {
+  const contentStyle = useMemo(() => ({
     fontFamily: templateStyles.fontFamily,
     fontSize: templateStyles.fontSize,
     lineHeight: templateStyles.lineHeight,
@@ -59,17 +58,15 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
     '--accent-color': templateStyles.colors.accent,
     '--section-spacing': templateStyles.spacing.sectionSpacing,
     '--item-spacing': templateStyles.spacing.itemSpacing,
-  } as React.CSSProperties;
+  }), [templateStyles]);
 
-  // Get template-specific layout
-  const getTemplateLayout = () => {
+  // Get template-specific layout using useMemo
+  const templateLayout = useMemo(() => {
     if (selectedTemplate && selectedTemplate.layout_config) {
       return selectedTemplate.layout_config.layout || 'single-column';
     }
     return 'single-column';
-  };
-
-  const templateLayout = getTemplateLayout();
+  }, [selectedTemplate]);
 
   const contentClassName = cn(
     'p-8 bg-white text-gray-800 max-w-4xl mx-auto shadow-lg space-y-6',
@@ -96,7 +93,7 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card id="resume-preview">
       <CardContent style={{...contentStyle, ...modernBorderStyle}} className={contentClassName}>
         {/* Header Section */}
         <div className={cn("mb-6", {
@@ -234,7 +231,7 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
             </h2>
             <ul className={cn("list-disc list-inside grid grid-cols-2 gap-1", {"pl-5": templateOptions.textAlign === 'left' || templateOptions.textAlign === 'right' })}>
               {skills.map((skill, index) => (
-                <li key={skill.id} className="text-gray-700">
+                <li key={`skill-${skill.id || index}`} className="text-gray-700">
                   <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'skills', index, field: 'name'}, skill.name, `Skill Name` , false))}>{skill.name || "Skill Name"}</span> <span className="text-xs text-gray-500">({skill.proficiency})</span>
                 </li>
               ))}
@@ -254,12 +251,13 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
             }}>
               <FolderGit2 className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Projects
             </h2>
-            {projects.map((proj, index) => (
-              <div key={proj.id} className="mb-3">
-                <h3 className={cn("text-md font-semibold text-gray-800", clickableClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'name'}, proj.name, `Project Name`, false))}>{proj.name || "Project Name"}</h3>
-                {proj.link && <a href={proj.link} target="_blank" rel="noopener noreferrer" className={cn("text-xs text-primary hover:underline", clickableClassName)} onClick={(e) => { e.stopPropagation(); handleClick(() => onEdit({section: 'projects', index, field: 'link'}, proj.link, `Project Link`, false));}}>{proj.link}</a>}
-                <p className={cn("text-sm text-gray-600 italic", clickableClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'technologies'}, proj.technologies, `Technologies for ${proj.name || 'Project Item ' + (index+1)}`, false))}>Technologies: {proj.technologies || "Technologies used"}</p>
-                <p className={cn("mt-1 text-gray-700 whitespace-pre-wrap", clickableBlockClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'description'}, proj.description, `Description for ${proj.name || 'Project Item ' + (index+1)}`, true))}>{proj.description || "Project description..."}</p>
+            {projects.map((project, index) => (
+              <div key={`project-${project.id || index}`} className="mb-3">
+                <h3 className={cn("text-md font-semibold text-gray-800", clickableClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'name'}, project.name, `Project Name for ${project.name || 'Project ' + (index+1)}`, false))}>{project.name || "Project Name"}</h3>
+                <p className="text-sm text-gray-600">
+                  <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'technologies'}, project.technologies, `Technologies for ${project.name || 'Project ' + (index+1)}`, false))}>{project.technologies || "Technologies"}</span>
+                </p>
+                <p className={cn("mt-1 text-gray-700 whitespace-pre-wrap", clickableBlockClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'description'}, project.description, `Description for ${project.name || 'Project ' + (index+1)}`, true))}>{project.description || "Project description..."}</p>
               </div>
             ))}
           </section>

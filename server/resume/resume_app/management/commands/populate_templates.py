@@ -161,25 +161,163 @@ class Command(BaseCommand):
                     'show_photo': True,
                     'bullet_style': '◦'
                 }
+            },
+            {
+                'name': 'LaTeX Professional',
+                'template_type': 'latex',  # Changed to use the new type
+                'description': 'Classic LaTeX resume template with excellent ATS parsing. Perfect for technical and academic roles.',
+                'ats_score': 97,
+                'latex_styles': {
+                    'document_class': 'article',
+                    'document_options': ['letterpaper', '10pt'],
+                    'packages': [
+                        'latexsym',
+                        {'name': 'fullpage', 'options': ['empty']},
+                        'titlesec',
+                        'marvosym',
+                        {'name': 'color', 'options': ['usenames,dvipsnames']},
+                        'verbatim',
+                        'enumitem',
+                        {'name': 'hyperref', 'options': ['hidelinks']},
+                        'fancyhdr',
+                        {'name': 'babel', 'options': ['english']},
+                        'tabularx'
+                    ],
+                    'layout_config': {
+                        'margins': {
+                            'oddsidemargin': '-0.5in',
+                            'evensidemargin': '-0.5in',
+                            'textwidth': '1in',
+                            'topmargin': '-.5in',
+                            'textheight': '1.0in'
+                        },
+                        'section_formatting': {
+                            'title_format': r'\large\bfseries\scshape\raggedright',
+                            'spacing': '0pt 1pt 8pt'  # left before after
+                        },
+                        'bullet_style': r'\textbullet',
+                        'show_photo': False
+                    }
+                },
+                'layout_config': {
+                    'layout': 'single-column',
+                    'sections_order': ['personalInfo', 'education', 'experience', 'projects', 
+                                    'positions', 'skills', 'achievements', 'certifications'],
+                    'show_photo': False,
+                    'bullet_style': '•'
+                },
+                'is_latex_template': True,
+                'css_styles': {}  # Add empty css_styles since it's required
+            },
+            {
+                'name': 'ATS Friendly Template',
+                'template_type': 'latex',
+                'description': 'Classic LaTeX resume template with excellent ATS parsing. Perfect for technical and academic roles.',
+                'ats_score': 97,
+                'css_styles': {
+                    'fontFamily': '"Lora", serif',
+                    'fontSize': '10pt',
+                    'lineHeight': '1.4',
+                    'colors': {
+                        'primary': '#000000',
+                        'secondary': '#333333',
+                        'accent': '#000000'
+                    },
+                    'spacing': {
+                        'sectionSpacing': '16pt',
+                        'itemSpacing': '6pt',
+                        'paragraphSpacing': '8pt'
+                    },
+                    'margins': {
+                        'left': '-0.5in',
+                        'right': '-0.5in',
+                        'top': '-0.5in',
+                        'bottom': '0.5in'
+                    },
+                    'section': {
+                        'titleFont': 'bold small-caps',
+                        'titleSize': 'large',
+                        'titleUnderline': True,
+                        'titleSpacing': '1pt 8pt'  # before after
+                    },
+                    'bullet_style': '•',
+                    'linkStyle': {
+                        'color': 'inherit',
+                        'textDecoration': 'none'
+                    },
+                    'table': {
+                        'cellPadding': '0in',
+                        'borderSpacing': '0'
+                    }
+                },
+                'latex_styles': {
+                    'document_class': 'article',
+                    'document_options': ['letterpaper', '10pt'],
+                    'packages': [
+                        'latexsym',
+                        {'name': 'fullpage', 'options': ['empty']},
+                        'titlesec',
+                        'marvosym',
+                        {'name': 'color', 'options': ['usenames,dvipsnames']},
+                        'verbatim',
+                        'enumitem',
+                        {'name': 'hyperref', 'options': ['hidelinks']},
+                        'fancyhdr',
+                        {'name': 'babel', 'options': ['english']},
+                        'tabularx'
+                    ],
+                    'layout_config': {
+                        'margins': {
+                            'oddsidemargin': '-0.5in',
+                            'evensidemargin': '-0.5in',
+                            'textwidth': '1in',
+                            'topmargin': '-.5in',
+                            'textheight': '1.0in'
+                        },
+                        'section_formatting': {
+                            'title_format': r'\large\bfseries\scshape\raggedright',
+                            'spacing': '0pt 1pt 8pt'  # left before after
+                        },
+                        'bullet_style': r'\textbullet',
+                        'show_photo': False
+                    }
+                },
+                'layout_config': {
+                    'layout': 'single-column',
+                    'sections_order': ['personalInfo', 'education', 'experience', 'projects', 
+                                    'positions', 'skills', 'achievements', 'certifications'],
+                    'show_photo': False,
+                    'bullet_style': '•'
+                },
+                'is_latex_template': True
             }
         ]
 
         created_count = 0
+        updated_count = 0
+        
         for template_data in templates_data:
-            template, created = ResumeTemplate.objects.get_or_create(
+            # Remove is_latex_template from defaults since it's not in the model
+            defaults = {k: v for k, v in template_data.items() if k != 'name'}
+            
+            # Try to get existing template or create new one
+            template, created = ResumeTemplate.objects.update_or_create(
                 name=template_data['name'],
-                defaults=template_data
+                defaults=defaults
             )
+            
             if created:
                 created_count += 1
                 self.stdout.write(
                     self.style.SUCCESS(f'Created template: {template.name}')
                 )
             else:
+                updated_count += 1
                 self.stdout.write(
-                    self.style.WARNING(f'Template already exists: {template.name}')
+                    self.style.SUCCESS(f'Updated template: {template.name}')
                 )
 
         self.stdout.write(
-            self.style.SUCCESS(f'Successfully created {created_count} new templates')
-        ) 
+            self.style.SUCCESS(f'Successfully processed {len(templates_data)} templates '
+                            f'({created_count} created, {updated_count} updated)')
+        )

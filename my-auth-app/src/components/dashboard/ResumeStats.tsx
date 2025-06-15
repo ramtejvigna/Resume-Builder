@@ -30,7 +30,7 @@ const StatCard: React.FC<StatCardProps> = ({
   <Card className="hover:shadow-lg transition-shadow duration-300 animate-slide-in-up">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      <Icon className="h-5 w-5 text-accent" />
+      <Icon className="h-5 w-5 text-primary dark:text-accent" />
     </CardHeader>
     <CardContent>
       {isLoading ? (
@@ -87,7 +87,7 @@ export default function ResumeStats() {
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-headline font-semibold mb-4 text-primary flex items-center">
-        <BarChartBig className="mr-2 h-6 w-6 text-accent" />
+        <BarChartBig className="mr-2 h-6 w-6 text-primary dark:text-accent" />
         Your Resume Statistics
       </h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

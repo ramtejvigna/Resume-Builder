@@ -132,14 +132,14 @@ export default function RecentResumes() {
     <Card className="hover:shadow-lg transition-shadow duration-300 animate-slide-in-up">
       <CardHeader>
         <CardTitle className="text-xl font-headline text-primary flex items-center">
-          <Clock className="mr-2 h-6 w-6 text-accent" />
+          <Clock className="mr-2 h-6 w-6 text-primary" />
           Recent Resumes
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="flex justify-center items-center h-32">
-            <Loader2 className="h-6 w-6 animate-spin text-accent" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span className="ml-2 text-muted-foreground">Loading resumes...</span>
           </div>
         ) : resumes.length === 0 ? (

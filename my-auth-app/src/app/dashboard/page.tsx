@@ -64,7 +64,7 @@ export default function DashboardPage() {
                 Resume Templates
               </h2>
               <Link href="/templates" passHref>
-                <Button variant="link" className="text-accent hover:text-primary">
+                <Button variant="link" className="text-primary hover:text-primary">
                   View All Templates
                 </Button>
               </Link>
@@ -84,7 +84,6 @@ export default function DashboardPage() {
                       id: template.id,
                       name: template.name,
                       category: template.template_type,
-                      previewImage: template.preview_image || "/placeholder-template.png",
                       rating: template.ats_score / 10, // Convert ATS score to 5-star rating
                       popularity: Math.floor(Math.random() * 1000) + 500, // Mock popularity for now
                       isPremium: template.is_premium,

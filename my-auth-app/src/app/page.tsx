@@ -1,35 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import Image from "next/image";
-import {
-  FileText,
-  Zap,
-  Award,
-  Download,
-  Eye,
-  Users,
-  ArrowRight,
-  CheckCircle,
-  Star,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Shield,
-  Clock,
-  Palette,
-  BarChart3,
-  ChevronRight,
-  Play,
-  MessageSquare,
-  Globe,
-  Smartphone,
-  Brain
-} from "lucide-react";
 import LandingHeader from "@/components/landing/Header";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";

@@ -41,8 +41,6 @@ import DirectEditModal from '@/components/resume/direct-edit-modal';
 import DashboardHeader from "@/components/dashboard/Header";
 import { resumeAPI, downloadPDF } from '@/lib/api';
 import { toast, Toaster } from 'sonner';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 export type EditingTarget =
   | { section: 'personalInfo'; field: keyof PersonalInfo }
@@ -260,59 +258,9 @@ export default function BuilderPage() {
     }
   };
 
-  const generateClientSidePDF = async () => {
-    try {
-      setGeneratingPDF(true);
-      const element = document.getElementById('resume-preview');
-      if (!element) {
-        throw new Error('Resume preview element not found');
-      }
-
-      // Wait for images to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create canvas from the resume preview
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        height: element.scrollHeight,
-        width: element.scrollWidth,
-      });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      
-      // Download the PDF
-      const fileName = resumeData.personalInfo.name 
-        ? `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`
-        : 'Resume.pdf';
-      
-      pdf.save(fileName);
-      toast.success('PDF downloaded successfully!');
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-      toast.error('Failed to generate PDF');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-
   const handleServerPDF = async () => {
     if (!currentResumeId) {
-      toast.error('Please save your resume first to generate server PDF');
+      toast.error('Please save your resume first to generate PDF');
       return;
     }
 
@@ -323,13 +271,17 @@ export default function BuilderPage() {
         ? `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`
         : 'Resume.pdf';
       downloadPDF(pdfBlob, fileName);
-      toast.success('Server PDF downloaded successfully!');
+      toast.success('PDF downloaded successfully!');
     } catch (error) {
-      console.error('Failed to generate server PDF:', error);
-      toast.error('Failed to generate server PDF');
+      console.error('Failed to generate PDF:', error);
+      toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setGeneratingPDF(false);
     }
+  };
+
+  const handleDownloadClick = () => {
+    handleServerPDF();
   };
 
   if (!isClient) {
@@ -442,6 +394,19 @@ export default function BuilderPage() {
                         {currentResumeId ? 'Update' : 'Save'}
                       </Button>
                       <Button
+                        onClick={handleDownloadClick}
+                        disabled={generatingPDF || !currentResumeId}
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90 text-white"
+                      >
+                        {generatingPDF ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        Download PDF
+                      </Button>
+                      <Button
                         onClick={() => window.location.href = '/templates'}
                         variant="outline"
                         size="sm"
@@ -454,220 +419,140 @@ export default function BuilderPage() {
               </Card>
             </motion.div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-background/50 backdrop-blur-sm">
-                <TabsTrigger value="edit" className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Edit Resume</span>
-                </TabsTrigger>
-                <TabsTrigger value="preview" className="flex items-center space-x-2">
-                  <Eye className="h-4 w-4" />
-                  <span>Preview & Download</span>
-                </TabsTrigger>
-              </TabsList>
-
-          <AnimatePresence mode="wait">
-
-            <TabsContent value="edit" className="mt-0">
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Form */}
               <motion.div
-                key="edit"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+                transition={{ duration: 0.4 }}
               >
-                <div className="lg:col-span-5 xl:col-span-4 space-y-6">
-                  <Card className="shadow-xl bg-background/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="font-headline text-2xl text-primary flex items-center">
-                        <FileText className="h-6 w-6 mr-2" />
-                        Edit Content
-                      </CardTitle>
-                      <CardDescription>
-                        Fill in your details section by section. Click on text in the preview to edit directly.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResumeForm resumeData={resumeData} setResumeData={setResumeData} />
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-                  <Card className="shadow-xl bg-background/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="font-headline text-2xl text-primary flex items-center">
-                            <Eye className="h-6 w-6 mr-2" />
-                            Live Preview
-                          </CardTitle>
-                          <CardDescription>
-                            See your resume update in real-time. Click any text to edit.
-                          </CardDescription>
-                        </div>
-                        {selectedTemplate && (
-                          <Badge variant="outline" className="flex items-center space-x-1">
-                            <Award className="h-3 w-3" />
-                            <span>ATS: {selectedTemplate.ats_score}%</span>
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div id="resume-preview">
-                        <ResumePreview 
-                          resumeData={resumeData} 
-                          templateOptions={templateOptions}
-                          onEdit={openEditModal}
-                          selectedTemplate={selectedTemplate}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="shadow-xl bg-background/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="font-headline text-2xl text-primary flex items-center">
-                        <Settings className="h-6 w-6 mr-2" />
-                        Customize Style
-                      </CardTitle>
-                      <CardDescription>
-                        Adjust fonts, colors, and layout to match your style.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <TemplateCustomizer 
-                        templateOptions={templateOptions} 
-                        setTemplateOptions={setTemplateOptions} 
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="edit">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Edit
+                    </TabsTrigger>
+                    <TabsTrigger value="customize">
+                      <Palette className="h-4 w-4 mr-2" />
+                      Customize
+                    </TabsTrigger>
+                    <TabsTrigger value="manage">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Manage
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="edit" className="mt-4">
+                    <ResumeForm
+                      resumeData={resumeData}
+                      setResumeData={setResumeData}
+                    />
+                  </TabsContent>
+                  <TabsContent value="customize" className="mt-4">
+                    <TemplateCustomizer
+                      templateOptions={templateOptions}
+                      setTemplateOptions={setTemplateOptions}
+                    />
+                  </TabsContent>
+                  <TabsContent value="manage" className="mt-4">
+                    <ResumeManager
+                      currentResumeData={resumeData}
+                      currentTemplateOptions={templateOptions}
+                      onLoadResume={handleLoadResume}
+                      selectedTemplate={selectedTemplate?.id}
+                    />
+                  </TabsContent>
+                </Tabs>
               </motion.div>
-            </TabsContent>
 
-            <TabsContent value="preview" className="mt-0">
+              {/* Right Column - Preview */}
               <motion.div
-                key="preview"
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
+                transition={{ duration: 0.4 }}
+                className="sticky top-4"
               >
-                <Card className="shadow-xl bg-background/80 backdrop-blur-sm">
-                  <CardHeader>
+                <Card className="shadow-xl">
+                  <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="font-headline text-2xl text-primary flex items-center">
-                          <Sparkles className="h-6 w-6 mr-2" />
-                          Final Preview
-                        </CardTitle>
-                        <CardDescription>
-                          Your resume as it will appear to employers
-                        </CardDescription>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          onClick={generateClientSidePDF}
-                          disabled={generatingPDF}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          {generatingPDF ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4 mr-2" />
-                          )}
-                          Download PDF
-                        </Button>
-                        {currentResumeId && (
-                          <Button
-                            onClick={handleServerPDF}
-                            disabled={generatingPDF}
-                            variant="outline"
-                          >
-                            Server PDF
-                          </Button>
-                        )}
-                      </div>
+                      <CardTitle className="text-lg font-semibold">Preview</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={() => window.open('/preview', '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Full Screen
+                      </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="bg-white p-8 rounded-lg shadow-inner">
-                      <ResumePreview 
-                        resumeData={resumeData} 
+                  <CardContent className="p-0">
+                    <div className="overflow-auto max-h-[calc(100vh-200px)]">
+                      <ResumePreview
+                        resumeData={resumeData}
                         templateOptions={templateOptions}
                         onEdit={openEditModal}
-                        isPreviewMode={true}
                         selectedTemplate={selectedTemplate}
                       />
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
-            </TabsContent>
-
-            </AnimatePresence>
-            </Tabs>
+            </div>
           </div>
         )}
-      </main>
 
-      {showSaveDialog && (
+        {/* Save Dialog */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Save Resume</DialogTitle>
               <DialogDescription>
-                Give your resume a name to save it for future editing.
+                Enter a title for your resume to save it.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="resume-title">Resume Title</Label>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Resume Title</Label>
                 <Input
-                  id="resume-title"
-                  placeholder="Enter resume title (e.g., Software Engineer Resume)"
+                  id="title"
                   value={resumeTitle}
                   onChange={(e) => setResumeTitle(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && saveResume()}
+                  placeholder="e.g., Software Engineer Resume"
                 />
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={saveResume} disabled={saving || !resumeTitle.trim()}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Resume
-                    </>
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={saveResume}
+                disabled={saving || !resumeTitle.trim()}
+                className="w-full"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Resume
+                  </>
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
-      )}
 
-      {isEditModalOpen && editingTarget && (
+        {/* Edit Modal */}
         <DirectEditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          currentText={editingCurrentText}
           onSave={handleSaveModalEdit}
+          currentText={editingCurrentText}
           label={editingLabel}
           isTextarea={isEditingTextarea}
         />
-      )}
+      </main>
     </div>
   );
 }

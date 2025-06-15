@@ -81,7 +81,7 @@ const TemplatePreview: FC<TemplatePreviewProps> = ({ template, className }) => {
         colors: {
           primary: template.css_styles.colors?.primary || '#000000',
           secondary: template.css_styles.colors?.secondary || '#333333',
-          accent: template.css_styles.colors?.accent || '#2E86AB',
+          accent: template.css_styles.colors?.accent || '#000000',
         },
         spacing: {
           sectionSpacing: template.css_styles.spacing?.sectionSpacing || '12px',
@@ -137,7 +137,7 @@ const TemplatePreview: FC<TemplatePreviewProps> = ({ template, className }) => {
   } : {};
 
   return (
-    <Card className={cn("shadow-lg w-full h-96 overflow-hidden", className)}>
+    <Card className={cn("shadow-lg w-full h-96 overflow-y-auto", className)}>
       <CardContent 
         style={{...contentStyle, ...modernBorderStyle}} 
         className={contentClassName}
@@ -236,6 +236,39 @@ const TemplatePreview: FC<TemplatePreviewProps> = ({ template, className }) => {
               </span>
             ))}
           </div>
+        </section>
+
+        {/* Projects Section */}
+        <section className="mb-3">
+          <h2 
+            className="text-sm font-semibold border-b pb-1 mb-1 flex items-center" 
+            style={{ 
+              color: 'var(--primary-color)',
+              borderBottomColor: 'var(--accent-color)',
+              fontSize: 'calc(var(--font-size, 10px) * 1.2)'
+            }}
+          >
+            <FolderGit2 className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color)' }} /> 
+            Projects
+          </h2>
+          {sampleData.projects.map((project) => (
+            <div key={project.id} className="mb-2">
+              <h3 className="text-xs font-semibold" style={{ color: 'var(--primary-color)' }}>
+                {project.name}
+              </h3>
+              <p className="text-xs" style={{ color: 'var(--secondary-color)' }}>
+                {project.description}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--secondary-color)' }}>
+                Technologies: {project.technologies}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--secondary-color)' }}>
+                <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600">
+                  {project.link}
+                </a>
+              </p>
+            </div>
+          ))}
         </section>
       </CardContent>
     </Card>

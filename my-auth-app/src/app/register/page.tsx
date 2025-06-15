@@ -29,14 +29,14 @@ export default function RegisterPage() {
   });
   const [errors, setErrors] = useState<RegistrationErrors | string>({});
   const [loading, setLoading] = useState(false);
-  const { register, loading: authLoading } = useAuth();
+  const { user, register, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && user) {
       router.replace('/dashboard');
     }
-  }, [authLoading, router]);
+  }, [authLoading, router, user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

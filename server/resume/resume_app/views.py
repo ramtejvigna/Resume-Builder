@@ -21,11 +21,72 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 from io import BytesIO
 import uuid
 
 User = get_user_model()
+
+def get_font_family(font_family):
+    """Get the appropriate font family with fallbacks."""
+    # Extract the first font from the font-family string
+    primary_font = font_family.split(',')[0].strip().strip('"\'')
+    
+    # Map of font families to their ReportLab equivalents
+    font_map = {
+        'Calibri': 'Helvetica',  # Fallback to Helvetica
+        'Arial': 'Helvetica',    # Fallback to Helvetica
+        'Helvetica': 'Helvetica',
+        'Times New Roman': 'Times-Roman',
+        'Times': 'Times-Roman',
+        'Courier': 'Courier',
+        'Georgia': 'Times-Roman',  # Fallback to Times-Roman
+        'Lora': 'Times-Roman',     # Fallback to Times-Roman
+        'sans-serif': 'Helvetica',
+        'serif': 'Times-Roman',
+        'monospace': 'Courier'
+    }
+    
+    # Return the mapped font or default to Helvetica
+    return font_map.get(primary_font, 'Helvetica')
+
+def convert_to_points(value, default=12):
+    """Convert CSS units (px, pt, in) to points for PDF generation."""
+    if not value:
+        return default
+    
+    # Remove any whitespace
+    value = str(value).strip()
+    
+    # Extract number and unit
+    number = ''
+    unit = ''
+    for char in value:
+        if char.isdigit() or char == '.':
+            number += char
+        else:
+            unit += char
+    
+    try:
+        number = float(number)
+    except ValueError:
+        return default
+    
+    # Convert to points based on unit
+    if unit == 'px':
+        # Approximate conversion: 1px ≈ 0.75pt
+        return number * 0.75
+    elif unit == 'pt':
+        return number
+    elif unit == 'in':
+        return number * 72  # 1 inch = 72 points
+    elif unit == 'mm':
+        return number * 2.83465  # 1 mm ≈ 2.83465 points
+    else:
+        return default
 
 # Authentication Views
 @api_view(['POST'])
@@ -277,35 +338,63 @@ def generate_resume_pdf(request, resume_id):
     try:
         # Create PDF buffer
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                              rightMargin=72, leftMargin=72,
-                              topMargin=72, bottomMargin=18)
+        
+        # Get template styles
+        template = resume.template
+        if not template:
+            return Response({'error': 'No template selected for this resume'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get template styles
+        css_styles = template.css_styles
+        layout_config = template.layout_config
+        
+        # Set margins based on template
+        margins = css_styles.get('margins', {})
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=convert_to_points(margins.get('right', '0.5in')),
+            leftMargin=convert_to_points(margins.get('left', '0.5in')),
+            topMargin=convert_to_points(margins.get('top', '0.5in')),
+            bottomMargin=convert_to_points(margins.get('bottom', '0.5in'))
+        )
         
         # Get styles
         styles = getSampleStyleSheet()
         
-        # Create custom styles
+        # Get font family with fallback
+        font_family = get_font_family(css_styles.get('fontFamily', 'Helvetica, sans-serif'))
+        
+        # Create custom styles based on template
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=18,
-            spaceAfter=30,
-            alignment=1  # Center alignment
+            fontName=font_family,
+            fontSize=convert_to_points(css_styles.get('fontSize', '18pt')),
+            spaceAfter=convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '30pt')),
+            alignment=1,  # Center alignment
+            textColor=css_styles.get('colors', {}).get('primary', '#000000')
         )
         
         heading_style = ParagraphStyle(
             'CustomHeading',
             parent=styles['Heading2'],
-            fontSize=14,
-            spaceAfter=12,
-            textColor='#2E86AB'
+            fontName=font_family,
+            fontSize=convert_to_points(css_styles.get('fontSize', '14pt')),
+            spaceAfter=convert_to_points(css_styles.get('spacing', {}).get('itemSpacing', '12pt')),
+            textColor=css_styles.get('colors', {}).get('accent', '#2E86AB'),
+            fontStyle='bold'
         )
         
         normal_style = ParagraphStyle(
             'CustomNormal',
             parent=styles['Normal'],
-            fontSize=10,
-            spaceAfter=12
+            fontName=font_family,
+            fontSize=convert_to_points(css_styles.get('fontSize', '10pt')),
+            spaceAfter=convert_to_points(css_styles.get('spacing', {}).get('itemSpacing', '12pt')),
+            textColor=css_styles.get('colors', {}).get('secondary', '#333333'),
+            leading=convert_to_points(css_styles.get('fontSize', '10pt')) * float(css_styles.get('lineHeight', '1.4'))
         )
         
         # Build PDF content
@@ -327,57 +416,64 @@ def generate_resume_pdf(request, resume_id):
         if contact_info:
             story.append(Paragraph(' | '.join(contact_info), normal_style))
         
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
         
-        # Professional Summary
-        if resume.professional_summary:
-            story.append(Paragraph("PROFESSIONAL SUMMARY", heading_style))
-            story.append(Paragraph(resume.professional_summary, normal_style))
+        # Get sections order from template
+        sections_order = layout_config.get('sections_order', [
+            'summary', 'experience', 'education', 'skills', 'projects'
+        ])
         
-        # Experience
-        if resume.experience:
-            story.append(Paragraph("EXPERIENCE", heading_style))
-            for exp in resume.experience:
-                exp_title = f"<b>{exp.get('jobTitle', '')}</b> at {exp.get('company', '')}"
-                story.append(Paragraph(exp_title, normal_style))
-                
-                exp_details = f"{exp.get('location', '')} | {exp.get('startDate', '')} - {exp.get('endDate', '')}"
-                story.append(Paragraph(exp_details, normal_style))
-                
-                if exp.get('description'):
-                    story.append(Paragraph(exp['description'], normal_style))
-                story.append(Spacer(1, 6))
-        
-        # Education
-        if resume.education:
-            story.append(Paragraph("EDUCATION", heading_style))
-            for edu in resume.education:
-                edu_title = f"<b>{edu.get('degree', '')}</b> - {edu.get('institution', '')}"
-                story.append(Paragraph(edu_title, normal_style))
-                
-                edu_details = f"{edu.get('location', '')} | {edu.get('graduationDate', '')}"
-                story.append(Paragraph(edu_details, normal_style))
-                story.append(Spacer(1, 6))
-        
-        # Skills
-        if resume.skills:
-            story.append(Paragraph("SKILLS", heading_style))
-            skills_text = ', '.join([skill.get('name', '') for skill in resume.skills if skill.get('name')])
-            story.append(Paragraph(skills_text, normal_style))
-        
-        # Projects
-        if resume.projects:
-            story.append(Paragraph("PROJECTS", heading_style))
-            for proj in resume.projects:
-                proj_title = f"<b>{proj.get('name', '')}</b>"
-                story.append(Paragraph(proj_title, normal_style))
-                
-                if proj.get('description'):
-                    story.append(Paragraph(proj['description'], normal_style))
-                
-                if proj.get('technologies'):
-                    story.append(Paragraph(f"Technologies: {proj['technologies']}", normal_style))
-                story.append(Spacer(1, 6))
+        # Process sections in the specified order
+        for section in sections_order:
+            if section == 'summary' and resume.professional_summary:
+                story.append(Paragraph("PROFESSIONAL SUMMARY", heading_style))
+                story.append(Paragraph(resume.professional_summary, normal_style))
+                story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
+            
+            elif section == 'experience' and resume.experience:
+                story.append(Paragraph("EXPERIENCE", heading_style))
+                for exp in resume.experience:
+                    exp_title = f"<b>{exp.get('jobTitle', '')}</b> at {exp.get('company', '')}"
+                    story.append(Paragraph(exp_title, normal_style))
+                    
+                    exp_details = f"{exp.get('location', '')} | {exp.get('startDate', '')} - {exp.get('endDate', '')}"
+                    story.append(Paragraph(exp_details, normal_style))
+                    
+                    if exp.get('description'):
+                        story.append(Paragraph(exp['description'], normal_style))
+                    story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('itemSpacing', '6pt'))))
+                story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
+            
+            elif section == 'education' and resume.education:
+                story.append(Paragraph("EDUCATION", heading_style))
+                for edu in resume.education:
+                    edu_title = f"<b>{edu.get('degree', '')}</b> - {edu.get('institution', '')}"
+                    story.append(Paragraph(edu_title, normal_style))
+                    
+                    edu_details = f"{edu.get('location', '')} | {edu.get('graduationDate', '')}"
+                    story.append(Paragraph(edu_details, normal_style))
+                    story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('itemSpacing', '6pt'))))
+                story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
+            
+            elif section == 'skills' and resume.skills:
+                story.append(Paragraph("SKILLS", heading_style))
+                skills_text = ', '.join([skill.get('name', '') for skill in resume.skills if skill.get('name')])
+                story.append(Paragraph(skills_text, normal_style))
+                story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
+            
+            elif section == 'projects' and resume.projects:
+                story.append(Paragraph("PROJECTS", heading_style))
+                for proj in resume.projects:
+                    proj_title = f"<b>{proj.get('name', '')}</b>"
+                    story.append(Paragraph(proj_title, normal_style))
+                    
+                    if proj.get('description'):
+                        story.append(Paragraph(proj['description'], normal_style))
+                    
+                    if proj.get('technologies'):
+                        story.append(Paragraph(f"Technologies: {proj['technologies']}", normal_style))
+                    story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('itemSpacing', '6pt'))))
+                story.append(Spacer(1, convert_to_points(css_styles.get('spacing', {}).get('sectionSpacing', '12pt'))))
         
         # Build PDF
         doc.build(story)

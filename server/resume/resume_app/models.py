@@ -54,6 +54,7 @@ class ResumeTemplate(models.Model):
         ('creative', 'Creative'),
         ('professional', 'Professional'),
         ('ats_friendly', 'ATS Friendly'),
+        ('latex', 'LaTeX'),  # Add this new type
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -62,9 +63,11 @@ class ResumeTemplate(models.Model):
     description = models.TextField()
     preview_image = models.URLField(blank=True, null=True)
     css_styles = models.JSONField(default=dict)  # Store template styling
+    latex_styles = models.JSONField(default=dict)  # Add this for LaTeX templates
     layout_config = models.JSONField(default=dict)  # Store layout configuration
     ats_score = models.PositiveIntegerField(default=0, help_text="ATS compatibility score out of 100")
     is_premium = models.BooleanField(default=False)
+    is_latex_template = models.BooleanField(default=False)  # Add this flag
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
