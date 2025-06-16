@@ -205,25 +205,10 @@ export const resumeAPI = {
     await api.delete(`/auth/resumes/${resumeId}/delete/`);
   },
 
-  generatePDF: async (resumeId: string): Promise<Blob> => {
-    const response = await api.post(`/auth/resumes/${resumeId}/pdf/`, {}, {
-      responseType: 'blob',
-    });
-    return response.data;
-  },
+
 };
 
-// Utility functions
-export const downloadPDF = (blob: Blob, filename: string) => {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-};
+// Utility functions - downloadPDF removed as PDF generation is now client-side
 
 // Dashboard API
 export const dashboardAPI = {

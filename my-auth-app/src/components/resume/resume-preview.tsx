@@ -1,13 +1,13 @@
 "use client";
 
 import type { FC } from 'react';
-import type { ResumeData, TemplateOptions, PersonalInfo, ExperienceEntry } from '@/types/resume';
-import type { EditingTarget } from '@/app/builder/page'; // Import EditingTarget
-import { Card, CardContent } from '@/components/ui/card';
+import type { ResumeData, TemplateOptions } from '@/types/resume';
+import type { EditingTarget } from '@/app/builder/page';
 import { cn } from "@/lib/utils";
 import { Mail, Phone, Linkedin, Github, Globe, Briefcase, GraduationCap, Lightbulb, FolderGit2, FileText as FileTextIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 
 interface ResumePreviewProps {
   resumeData: ResumeData;
@@ -22,9 +22,7 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
 
   // Get template-specific styles using useMemo to prevent unnecessary recalculations
   const templateStyles = useMemo(() => {
-    console.log("Selected template:", selectedTemplate); // Debug log
     if (selectedTemplate && selectedTemplate.css_styles) {
-      console.log("Template CSS styles:", selectedTemplate.css_styles); // Debug log
       return {
         fontFamily: selectedTemplate.css_styles.fontFamily || 'Inter, sans-serif',
         fontSize: selectedTemplate.css_styles.fontSize || '14px',
@@ -68,33 +66,32 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
     return 'single-column';
   }, [selectedTemplate]);
 
-  const contentClassName = cn(
-    'p-8 bg-white text-gray-800 max-w-4xl mx-auto shadow-lg space-y-6',
+  const contentClassName = useMemo(() => cn(
+    'p-8 bg-white text-gray-800 max-w-4xl mx-auto space-y-6',
     {
-      // Template-specific layouts
       'border-l-4': templateLayout === 'modern',
       'shadow-inner': templateLayout === 'professional', 
       'bg-gradient-to-b from-gray-50 to-white': templateLayout === 'creative',
     }
-  );
+  ), [templateLayout]);
 
   // Apply template-specific border color for modern layout
-  const modernBorderStyle = templateLayout === 'modern' ? {
+  const modernBorderStyle = useMemo(() => templateLayout === 'modern' ? {
     borderLeftColor: templateStyles.colors.accent
-  } : {};
+  } : {}, [templateLayout, templateStyles.colors.accent]);
   
-  const clickableClassName = isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 inline-block";
-  const clickableBlockClassName = isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 block";
+  const clickableClassName = useMemo(() => isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 inline-block", [isPreviewMode]);
+  const clickableBlockClassName = useMemo(() => isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 block", [isPreviewMode]);
 
-  const handleClick = (callback: () => void) => {
+  const handleClick = useCallback((callback: () => void) => {
     if (!isPreviewMode) {
       callback();
     }
-  };
+  }, [isPreviewMode]);
 
   return (
-    <Card id="resume-preview">
-      <CardContent style={{...contentStyle, ...modernBorderStyle}} className={contentClassName}>
+    <div id="resume-preview">
+      <div style={{...contentStyle, ...modernBorderStyle}} className={contentClassName}>
         {/* Header Section */}
         <div className={cn("mb-6", {
           "text-center": templateOptions.textAlign === 'center',
@@ -129,11 +126,11 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
             'justify-start': templateOptions.textAlign === 'left',
             'justify-end': templateOptions.textAlign === 'right',
           })}>
-            {personalInfo.email && <span className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'email' }, personalInfo.email, 'Email Address', false))}><span className='flex items-center'><Mail className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.email}</span></span>}
-            {personalInfo.phone && <span className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'phone' }, personalInfo.phone, 'Phone Number', false))}><span className='flex items-center'><Phone className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.phone}</span></span>}
-            {personalInfo.linkedin && <span className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'linkedin' }, personalInfo.linkedin, 'LinkedIn Profile URL', false))}><span className='flex items-center'><Linkedin className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />LinkedIn</span></span>}
-            {personalInfo.github && <span className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'github' }, personalInfo.github, 'GitHub Profile URL', false))}><span className='flex items-center'><Github className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Github</span></span>}
-            {personalInfo.portfolio && <span className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'portfolio' }, personalInfo.portfolio, 'Portfolio URL', false))}><span className='flex items-center'><Globe className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Portfolio</span></span>}
+            {personalInfo.email && <Link href={`mailto:${personalInfo.email}`} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'email' }, personalInfo.email, 'Email Address', false))}><span className='flex items-center'><Mail className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.email}</span></Link>}
+            {personalInfo.phone && <Link href={`tel:${personalInfo.phone}`} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'phone' }, personalInfo.phone, 'Phone Number', false))}><span className='flex items-center'><Phone className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.phone}</span></Link>}
+            {personalInfo.linkedin && <Link href={personalInfo.linkedin} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'linkedin' }, personalInfo.linkedin, 'LinkedIn Profile URL', false))}><span className='flex items-center'><Linkedin className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />LinkedIn</span></Link>}
+            {personalInfo.github && <Link href={personalInfo.github} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'github' }, personalInfo.github, 'GitHub Profile URL', false))}><span className='flex items-center'><Github className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Github</span></Link>}
+            {personalInfo.portfolio && <Link href={personalInfo.portfolio} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'portfolio' }, personalInfo.portfolio, 'Portfolio URL', false))}><span className='flex items-center'><Globe className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Portfolio</span></Link>}
           </div>
         </div>
 
@@ -263,8 +260,8 @@ const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, on
           </section>
         )}
 
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

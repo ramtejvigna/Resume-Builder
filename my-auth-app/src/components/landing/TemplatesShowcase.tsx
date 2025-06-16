@@ -102,53 +102,6 @@ export default function TemplatesShowcase() {
               className="group cursor-pointer"
             >
               <Card className="overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-background">
-                <div className="relative aspect-[3/4] overflow-hidden">
-                  {/* Template Preview */}
-                  <div className={`w-full h-full bg-gradient-to-br ${template.color} p-6 flex flex-col`}>
-                    <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 flex-1 flex flex-col">
-                      <div className="space-y-3">
-                        <div className="h-3 bg-gray-300 rounded w-3/4"></div>
-                        <div className="h-2 bg-gray-200 rounded w-1/2"></div>
-                        <div className="h-2 bg-gray-200 rounded w-2/3"></div>
-                        
-                        <div className="pt-4 space-y-2">
-                          <div className="h-2 bg-gray-300 rounded w-full"></div>
-                          <div className="h-2 bg-gray-200 rounded w-5/6"></div>
-                          <div className="h-2 bg-gray-200 rounded w-4/5"></div>
-                        </div>
-                        
-                        <div className="pt-4 space-y-2">
-                          <div className="h-2 bg-gray-300 rounded w-2/3"></div>
-                          <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* ATS Score Badge */}
-                  <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center shadow-lg">
-                    <Award className="h-3 w-3 mr-1" />
-                    {template.atsScore}%
-                  </div>
-                  
-                  {/* Hover Overlay */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: selectedTemplate === template.id ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 bg-black/50 flex items-center justify-center"
-                  >
-                    <Button 
-                      variant="secondary" 
-                      size="lg"
-                      className="bg-white/90 text-black hover:bg-white"
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Preview Template
-                    </Button>
-                  </motion.div>
-                </div>
-                
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold group-hover:text-primary transition-colors">

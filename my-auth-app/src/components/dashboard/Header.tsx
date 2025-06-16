@@ -20,9 +20,6 @@ const NavLinks = ({ inSheet = false }: { inSheet?: boolean }) => {
         <Link href="/templates">Templates</Link>
       </Button>
       <Button variant={inSheet ? "ghost" : "ghost"} asChild className={inSheet ? "w-full justify-start" : ""}>
-        <Link href="/builder">Builder</Link>
-      </Button>
-      <Button variant={inSheet ? "ghost" : "ghost"} asChild className={inSheet ? "w-full justify-start" : ""}>
         <Link href="/my-resumes">My Resumes</Link>
       </Button>
       {inSheet && <DropdownMenuSeparator />}

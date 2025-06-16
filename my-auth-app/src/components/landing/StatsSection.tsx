@@ -143,35 +143,6 @@ export default function StatsSection() {
             );
           })}
         </div>
-
-        {/* Additional Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-16 pt-16 border-t border-muted-foreground/20"
-        >
-          <div className="text-center">
-            <p className="text-muted-foreground mb-8">
-              Trusted by professionals at
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-12 opacity-60">
-              {/* Mock company logos - you can replace with actual logos */}
-              {["Google", "Microsoft", "Apple", "Amazon", "Meta", "Netflix"].map((company, index) => (
-                <motion.div
-                  key={company}
-                  initial={{ opacity: 0 }}
-                  animate={isInView ? { opacity: 0.6 } : {}}
-                  transition={{ duration: 0.6, delay: 1 + index * 0.1 }}
-                  whileHover={{ opacity: 1, scale: 1.1 }}
-                  className="text-xl font-bold text-muted-foreground hover:text-foreground transition-colors cursor-default"
-                >
-                  {company}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

@@ -15,7 +15,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { resumeAPI, downloadPDF } from '@/lib/api';
+import { resumeAPI } from '@/lib/api';
 import { ResumeData, TemplateOptions, SavedResume } from '@/types/resume';
 import { 
   Save, 
@@ -155,11 +155,20 @@ export default function ResumeManager({
     }
   };
 
-  const generatePDF = async (resumeId: string, title: string) => {
+  const generatePDF = async (resume: SavedResume) => {
     try {
-      setGeneratingPDF(resumeId);
-      const pdfBlob = await resumeAPI.generatePDF(resumeId);
-      downloadPDF(pdfBlob, `${title}.pdf`);
+      setGeneratingPDF(resume.id);
+      
+      const resumeElement = document.getElementById('resume-preview');
+      if(!resumeElement) {
+        toast.error('Resume preview element not found');
+        return;
+      }
+
+      // Use the shared PDF generation utility
+      const { generateClientPDF } = await import('@/lib/pdf-utils');
+      await generateClientPDF(resumeElement, `${resume.title}.pdf`);
+      
       toast.success('PDF downloaded successfully!');
     } catch (error) {
       console.error('Failed to generate PDF:', error);
@@ -168,6 +177,8 @@ export default function ResumeManager({
       setGeneratingPDF(null);
     }
   };
+
+
 
   const loadResumeData = (resume: SavedResume) => {
     onLoadResume(resume);
@@ -298,7 +309,7 @@ export default function ResumeManager({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => generatePDF(resume.id, resume.title)}
+                            onClick={() => generatePDF(resume)}
                             disabled={generatingPDF === resume.id}
                             className="flex-1"
                           >

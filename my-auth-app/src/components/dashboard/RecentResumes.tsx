@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
-import { resumeAPI, ResumeListItem, downloadPDF } from "@/lib/api";
+import { resumeAPI, ResumeListItem } from "@/lib/api";
 import { toast } from "sonner";
 
 interface ResumeItem extends ResumeListItem {
@@ -51,18 +51,18 @@ export default function RecentResumes() {
     try {
       setLoading(true);
       const fetchedResumes = await resumeAPI.getAll();
-      
+
       // Convert to ResumeItem with status
       const processedResumes: ResumeItem[] = fetchedResumes.map(resume => ({
         ...resume,
         status: getResumeStatus(resume)
       }));
-      
+
       // Sort by updated_at (most recent first)
-      processedResumes.sort((a, b) => 
+      processedResumes.sort((a, b) =>
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       );
-      
+
       setResumes(processedResumes);
     } catch (error) {
       console.error('Error loading resumes:', error);
@@ -77,7 +77,7 @@ export default function RecentResumes() {
     const daysSinceUpdate = Math.floor(
       (new Date().getTime() - new Date(resume.updated_at).getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     if (daysSinceUpdate > 7) return "Draft";
     return Math.random() > 0.5 ? "Completed" : "Shared"; // Mock for now
   };
@@ -119,14 +119,28 @@ export default function RecentResumes() {
   const handleDownloadPDF = async (resume: ResumeItem) => {
     try {
       toast.loading('Generating PDF...', { id: 'pdf-generation' });
-      const blob = await resumeAPI.generatePDF(resume.id);
-      downloadPDF(blob, `${resume.title}.pdf`);
+      
+      // Get full resume data first
+      const fullResume = await resumeAPI.getById(resume.id);
+      
+      const resumeElement = document.getElementById('resume-preview');
+      if(!resumeElement) {
+        toast.error('Resume preview element not found');
+        return;
+      }
+
+      // Use the shared PDF generation utility
+      const { generateClientPDF } = await import('@/lib/pdf-utils');
+      await generateClientPDF(resumeElement, `${resume.title}.pdf`);
+      
       toast.success('PDF downloaded successfully', { id: 'pdf-generation' });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Failed to generate PDF', { id: 'pdf-generation' });
     }
   };
+
+
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300 animate-slide-in-up">
@@ -158,8 +172,8 @@ export default function RecentResumes() {
                   <div className="flex items-center flex-1 min-w-0">
                     <FileText className="h-8 w-8 text-primary mr-4 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <Link 
-                        href={`/builder?resumeId=${resume.id}`} 
+                      <Link
+                        href={`/builder?resumeId=${resume.id}`}
                         className="font-semibold text-primary hover:underline block truncate"
                       >
                         {resume.title}
@@ -169,16 +183,16 @@ export default function RecentResumes() {
                         {resume.template_name && (
                           <span className="ml-2">• {resume.template_name}</span>
                         )}
-                        <Badge 
-                          variant={
-                            resume.status === "Completed" ? "default" : 
-                            resume.status === "Shared" ? "outline" : "secondary"
-                          } 
-                          className="ml-2 scale-75 origin-left"
-                        >
-                          {resume.status}
-                        </Badge>
                       </p>
+                      <Badge
+                        variant={
+                          resume.status === "Completed" ? "default" :
+                            resume.status === "Shared" ? "outline" : "secondary"
+                        }
+                        className="ml-2 scale-75 origin-left"
+                      >
+                        {resume.status}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex space-x-1 ml-2">
@@ -187,25 +201,25 @@ export default function RecentResumes() {
                         <Edit3 className="h-4 w-4" />
                       </Link>
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       title="Download PDF"
                       onClick={() => handleDownloadPDF(resume)}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       title="Copy"
                       onClick={() => handleCopy(resume)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       title="Share"
                       onClick={() => handleShare(resume)}
                     >
@@ -213,10 +227,10 @@ export default function RecentResumes() {
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           title="Delete"
                           disabled={deletingId === resume.id}
                         >

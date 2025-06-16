@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import DirectEditModal from '@/components/resume/direct-edit-modal';
 import DashboardHeader from "@/components/dashboard/Header";
-import { resumeAPI, downloadPDF } from '@/lib/api';
+import { resumeAPI } from '@/lib/api';
 import { toast, Toaster } from 'sonner';
 
 export type EditingTarget =
@@ -170,19 +170,6 @@ export default function BuilderPage() {
     setEditingTarget(null);
   };
 
-  const handleTemplateSelect = (template: ResumeTemplate) => {
-    setSelectedTemplate(template);
-    // Apply template styles to templateOptions
-    setTemplateOptions(prev => ({
-      ...prev,
-      fontFamily: template.css_styles.fontFamily,
-      fontSize: template.css_styles.fontSize,
-      colors: template.css_styles.colors,
-      spacing: template.css_styles.spacing,
-    }));
-    toast.success(`Applied "${template.name}" template`);
-  };
-
   const handleLoadResume = (resume: SavedResume) => {
     setResumeData({
       personalInfo: resume.personal_info,
@@ -258,19 +245,40 @@ export default function BuilderPage() {
     }
   };
 
-  const handleServerPDF = async () => {
-    if (!currentResumeId) {
-      toast.error('Please save your resume first to generate PDF');
+  const handleClientPDF = async () => {
+    if (!selectedTemplate) {
+      toast.error('Please select a template first to generate PDF');
       return;
     }
 
     try {
       setGeneratingPDF(true);
-      const pdfBlob = await resumeAPI.generatePDF(currentResumeId);
+      
+      // Create resume data object for PDF generation
+      const resumeForPDF = {
+        personal_info: resumeData.personalInfo,
+        professional_summary: resumeData.summary,
+        experience: resumeData.experience,
+        education: resumeData.education,
+        skills: resumeData.skills,
+        projects: resumeData.projects,
+        template_options: templateOptions,
+      };
+
+      const resumeElement = document.getElementById('resume-preview');
+      if(!resumeElement) {
+        toast.error('Resume preview element not found');
+        return;
+      }
+
       const fileName = resumeData.personalInfo.name 
         ? `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`
         : 'Resume.pdf';
-      downloadPDF(pdfBlob, fileName);
+
+      // Use the shared PDF generation utility
+      const { generateClientPDF } = await import('@/lib/pdf-utils');
+      await generateClientPDF(resumeElement, fileName);
+      
       toast.success('PDF downloaded successfully!');
     } catch (error) {
       console.error('Failed to generate PDF:', error);
@@ -281,7 +289,7 @@ export default function BuilderPage() {
   };
 
   const handleDownloadClick = () => {
-    handleServerPDF();
+    handleClientPDF();
   };
 
   if (!isClient) {
@@ -395,7 +403,7 @@ export default function BuilderPage() {
                       </Button>
                       <Button
                         onClick={handleDownloadClick}
-                        disabled={generatingPDF || !currentResumeId}
+                        disabled={generatingPDF || !selectedTemplate}
                         size="sm"
                         className="bg-primary hover:bg-primary/90 text-white"
                       >
@@ -470,23 +478,8 @@ export default function BuilderPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4 }}
-                className="sticky top-4"
               >
-                <Card className="shadow-xl">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-semibold">Preview</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-primary"
-                        onClick={() => window.open('/preview', '_blank')}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Full Screen
-                      </Button>
-                    </div>
-                  </CardHeader>
+                <Card className="sticky top-4">
                   <CardContent className="p-0">
                     <div className="overflow-auto max-h-[calc(100vh-200px)]">
                       <ResumePreview

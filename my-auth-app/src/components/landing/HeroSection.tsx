@@ -88,10 +88,6 @@ export default function HeroSection() {
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6"
           >
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-300% animate-gradient">
-              Create Perfect
-            </span>
-            <br />
             <span className="text-foreground">
               Resumes in Minutes
             </span>
