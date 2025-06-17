@@ -1,27 +1,31 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ResumeForm from '@/components/resume/resume-form';
 import ResumePreview from '@/components/resume/resume-preview';
 import TemplateCustomizer from '@/components/resume/template-customizer';
-import TemplateSelector from '@/components/resume/template-selector';
 import ResumeManager from '@/components/resume/resume-manager';
 import type { 
   ResumeData, 
-  TemplateOptions, 
+  EnhancedTemplateOptions, 
   PersonalInfo, 
   ExperienceEntry, 
   EducationEntry, 
   SkillEntry, 
   ProjectEntry,
   ResumeTemplate,
-  SavedResume
+  SavedResume,
+  TemplateOptions
 } from '@/types/resume';
-import { initialResumeData, initialTemplateOptions } from '@/types/resume';
+import { 
+  initialResumeData, 
+  initialEnhancedTemplateOptions,
+  convertToEnhancedOptions 
+} from '@/types/resume';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,7 +56,7 @@ export type EditingTarget =
 
 export default function BuilderPage() {
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
-  const [templateOptions, setTemplateOptions] = useState<TemplateOptions>(initialTemplateOptions);
+  const [templateOptions, setTemplateOptions] = useState<EnhancedTemplateOptions>(initialEnhancedTemplateOptions);
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate | null>(null);
   const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -99,7 +103,12 @@ export default function BuilderPage() {
     const savedTemplateOptions = localStorage.getItem('templateOptions');
     if (savedTemplateOptions) {
       try {
-        setTemplateOptions(JSON.parse(savedTemplateOptions));
+        const parsedOptions = JSON.parse(savedTemplateOptions);
+        // Convert legacy options if needed
+        const enhancedOptions = 'textAlign' in parsedOptions 
+          ? convertToEnhancedOptions(parsedOptions)
+          : parsedOptions;
+        setTemplateOptions(enhancedOptions);
       } catch (e) {
         console.error("Error parsing saved template options from localStorage", e);
       }
@@ -179,7 +188,14 @@ export default function BuilderPage() {
       skills: resume.skills,
       projects: resume.projects,
     });
-    setTemplateOptions(resume.template_options);
+    
+    // Convert template options if needed
+    const loadedOptions = resume.template_options;
+    const enhancedOptions = 'textAlign' in loadedOptions 
+      ? convertToEnhancedOptions(loadedOptions as TemplateOptions)
+      : loadedOptions as EnhancedTemplateOptions;
+    
+    setTemplateOptions(enhancedOptions);
     setCurrentResumeId(resume.id);
     setActiveTab('edit');
   };
@@ -464,10 +480,7 @@ export default function BuilderPage() {
                   </TabsContent>
                   <TabsContent value="manage" className="mt-4">
                     <ResumeManager
-                      currentResumeData={resumeData}
-                      currentTemplateOptions={templateOptions}
                       onLoadResume={handleLoadResume}
-                      selectedTemplate={selectedTemplate?.id}
                     />
                   </TabsContent>
                 </Tabs>

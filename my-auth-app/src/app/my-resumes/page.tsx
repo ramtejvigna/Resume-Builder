@@ -6,14 +6,11 @@ import ResumeManager from '@/components/resume/resume-manager';
 import DashboardHeader from "@/components/dashboard/Header";
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
-import { ResumeData, TemplateOptions, SavedResume } from '@/types/resume';
-import { initialResumeData, initialTemplateOptions } from '@/types/resume';
+import { SavedResume, ResumeData } from '@/types/resume';
 import { Toaster, toast } from 'sonner';
 import { FolderOpen } from 'lucide-react';
 
 export default function MyResumesPage() {
-  const [currentResumeData, setCurrentResumeData] = useState<ResumeData>(initialResumeData);
-  const [currentTemplateOptions, setCurrentTemplateOptions] = useState<TemplateOptions>(initialTemplateOptions);
   const router = useRouter();
 
   const handleLoadResume = (resume: SavedResume) => {
@@ -68,8 +65,6 @@ export default function MyResumesPage() {
           <Card className="shadow-xl bg-background/80 backdrop-blur-sm">
             <CardContent className="p-6">
               <ResumeManager
-                currentResumeData={currentResumeData}
-                currentTemplateOptions={currentTemplateOptions}
                 onLoadResume={handleLoadResume}
               />
             </CardContent>

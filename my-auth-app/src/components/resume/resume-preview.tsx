@@ -1,268 +1,677 @@
-"use client";
+"use client"
 
-import type { FC } from 'react';
-import type { ResumeData, TemplateOptions } from '@/types/resume';
-import type { EditingTarget } from '@/app/builder/page';
-import { cn } from "@/lib/utils";
-import { Mail, Phone, Linkedin, Github, Globe, Briefcase, GraduationCap, Lightbulb, FolderGit2, FileText as FileTextIcon } from 'lucide-react';
-import Image from 'next/image';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import Link from 'next/link';
+import type React from "react"
 
-interface ResumePreviewProps {
-  resumeData: ResumeData;
-  templateOptions: TemplateOptions;
-  onEdit: (target: EditingTarget, currentText: string, label: string, isTextarea?: boolean) => void; // Added onEdit prop
-  isPreviewMode?: boolean; // Added optional isPreviewMode prop
-  selectedTemplate?: any; // Add selected template prop
+import type { FC } from "react"
+import type { ResumeData } from "@/types/resume"
+import type { EnhancedTemplateOptions, EditingTarget } from "@/types/resume"
+import { cn } from "@/lib/utils"
+import {
+  Mail,
+  Phone,
+  Linkedin,
+  Github,
+  Globe,
+  Briefcase,
+  GraduationCap,
+  Lightbulb,
+  FolderGit2,
+  FileTextIcon,
+} from "lucide-react"
+import Image from "next/image"
+import { useEffect, useMemo, useCallback } from "react"
+import Link from "next/link"
+
+interface EnhancedResumePreviewProps {
+  resumeData: ResumeData
+  templateOptions: EnhancedTemplateOptions
+  onEdit: (target: EditingTarget, currentText: string, label: string, isTextarea?: boolean) => void
+  isPreviewMode?: boolean
+  selectedTemplate?: any
 }
 
-const ResumePreview: FC<ResumePreviewProps> = ({ resumeData, templateOptions, onEdit, isPreviewMode = false, selectedTemplate }) => {
-  const { personalInfo, summary, experience, education, skills, projects } = resumeData;
+const ResumePreview: FC<EnhancedResumePreviewProps> = ({
+  resumeData,
+  templateOptions,
+  onEdit,
+  isPreviewMode = false,
+  selectedTemplate,
+}) => {
+  const { personalInfo, summary, experience, education, skills, projects } = resumeData
 
-  // Get template-specific styles using useMemo to prevent unnecessary recalculations
-  const templateStyles = useMemo(() => {
-    if (selectedTemplate && selectedTemplate.css_styles) {
-      return {
-        fontFamily: selectedTemplate.css_styles.fontFamily || 'Inter, sans-serif',
-        fontSize: selectedTemplate.css_styles.fontSize || '14px',
-        lineHeight: selectedTemplate.css_styles.lineHeight || '1.5',
-        colors: {
-          primary: selectedTemplate.css_styles.colors?.primary || '#000000',
-          secondary: selectedTemplate.css_styles.colors?.secondary || '#333333',
-          accent: selectedTemplate.css_styles.colors?.accent || '#2E86AB',
-        },
-        spacing: {
-          sectionSpacing: selectedTemplate.css_styles.spacing?.sectionSpacing || '16px',
-          itemSpacing: selectedTemplate.css_styles.spacing?.itemSpacing || '8px',
+  // Generate comprehensive styles from template options
+  const generatedStyles = useMemo(() => {
+    const styles = {
+      fontFamily: templateOptions.fontFamily,
+      fontSize: templateOptions.fontSize,
+      lineHeight: templateOptions.lineHeight,
+      color: templateOptions.colors.text,
+      backgroundColor: templateOptions.colors.background,
+      "--primary-color": templateOptions.colors.primary,
+      "--secondary-color": templateOptions.colors.secondary,
+      "--accent-color": templateOptions.colors.accent,
+      "--background-color": templateOptions.colors.background,
+      "--text-color": templateOptions.colors.text,
+      "--muted-color": templateOptions.colors.muted,
+      "--section-spacing": templateOptions.spacing.sectionSpacing,
+      "--item-spacing": templateOptions.spacing.itemSpacing,
+      "--paragraph-spacing": templateOptions.spacing.paragraphSpacing,
+      "--font-weight-normal": templateOptions.fontWeight?.normal,
+      "--font-weight-bold": templateOptions.fontWeight?.bold,
+      "--font-weight-light": templateOptions.fontWeight?.light,
+      "--header-bg": templateOptions.sections?.header?.backgroundColor,
+      "--header-text": templateOptions.sections?.header?.textColor,
+      "--header-padding": templateOptions.sections?.header?.padding,
+      "--section-header-color": templateOptions.sections?.sectionHeaders?.color,
+      "--section-header-border": templateOptions.sections?.sectionHeaders?.borderBottom,
+      "--link-color": templateOptions.sections?.content?.linkColor,
+      "--border-radius": templateOptions.layout?.borderRadius,
+      padding: `${templateOptions.spacing?.margins?.top} ${templateOptions.spacing?.margins?.right} ${templateOptions.spacing?.margins?.bottom} ${templateOptions.spacing?.margins?.left}`,
+    } as React.CSSProperties
+
+    return styles
+  }, [templateOptions])
+
+  // Layout-specific classes
+  const layoutClasses = useMemo(() => {
+    const baseClasses = "bg-white text-gray-800 max-w-4xl mx-auto"
+
+    switch (templateOptions.layout?.type) {
+      case "two-column":
+        return cn(baseClasses, "grid grid-cols-3 gap-6")
+      case "sidebar":
+        return cn(baseClasses, "grid grid-cols-4 gap-6")
+      case "modern":
+        return cn(baseClasses, "border-l-4 shadow-lg", {
+          "shadow-xl": templateOptions.layout.shadows,
+        })
+      case "creative":
+        return cn(baseClasses, "bg-gradient-to-br from-gray-50 to-white rounded-lg", {
+          "shadow-xl": templateOptions.layout.shadows,
+        })
+      default:
+        return cn(baseClasses, "space-y-6")
+    }
+  }, [templateOptions.layout])
+
+  const headerClasses = useMemo(() => {
+    const alignment = templateOptions.layout?.headerAlignment
+    return cn("mb-6", {
+      "text-left": alignment === "left",
+      "text-center": alignment === "center",
+      "text-right": alignment === "right",
+    })
+  }, [templateOptions.layout?.headerAlignment])
+
+  const sectionHeaderClasses = useMemo(() => {
+    return cn("font-semibold flex items-center mb-4", {
+      uppercase: templateOptions.sections?.sectionHeaders?.textTransform === "uppercase",
+      capitalize: templateOptions.sections?.sectionHeaders?.textTransform === "capitalize",
+      "border-b-2 pb-2": templateOptions.layout?.sectionDividers,
+    })
+  }, [templateOptions.sections?.sectionHeaders?.textTransform, templateOptions.layout?.sectionDividers])
+
+  const clickableClassName = useMemo(
+    () =>
+      isPreviewMode
+        ? ""
+        : "cursor-pointer hover:bg-blue-50 hover:bg-opacity-50 p-1 -m-1 rounded transition-all duration-150 inline-block border border-transparent hover:border-blue-200",
+    [isPreviewMode],
+  )
+
+  const clickableBlockClassName = useMemo(
+    () =>
+      isPreviewMode
+        ? ""
+        : "cursor-pointer hover:bg-blue-50 hover:bg-opacity-50 p-2 -m-2 rounded transition-all duration-150 block border border-transparent hover:border-blue-200",
+    [isPreviewMode],
+  )
+
+  const handleClick = useCallback(
+    (callback: () => void) => {
+      if (!isPreviewMode) {
+        callback()
+      }
+    },
+    [isPreviewMode],
+  )
+
+  // Custom CSS injection
+  useEffect(() => {
+    if (templateOptions.customCSS) {
+      const styleId = "custom-resume-styles"
+      let styleElement = document.getElementById(styleId) as HTMLStyleElement
+
+      if (!styleElement) {
+        styleElement = document.createElement("style")
+        styleElement.id = styleId
+        document.head.appendChild(styleElement)
+      }
+
+      styleElement.textContent = templateOptions.customCSS
+
+      return () => {
+        if (styleElement && styleElement.parentNode) {
+          styleElement.parentNode.removeChild(styleElement)
         }
-      };
+      }
     }
-    return {
-      fontFamily: 'Inter, sans-serif',
-      fontSize: '14px',
-      lineHeight: '1.5',
-      colors: { primary: '#000000', secondary: '#333333', accent: '#2E86AB' },
-      spacing: { sectionSpacing: '16px', itemSpacing: '8px' }
-    };
-  }, [selectedTemplate]);
+  }, [templateOptions.customCSS])
 
-  const contentStyle = useMemo(() => ({
-    fontFamily: templateStyles.fontFamily,
-    fontSize: templateStyles.fontSize,
-    lineHeight: templateStyles.lineHeight,
-    '--primary-color': templateStyles.colors.primary,
-    '--secondary-color': templateStyles.colors.secondary,
-    '--accent-color': templateStyles.colors.accent,
-    '--section-spacing': templateStyles.spacing.sectionSpacing,
-    '--item-spacing': templateStyles.spacing.itemSpacing,
-  }), [templateStyles]);
-
-  // Get template-specific layout using useMemo
-  const templateLayout = useMemo(() => {
-    if (selectedTemplate && selectedTemplate.layout_config) {
-      return selectedTemplate.layout_config.layout || 'single-column';
-    }
-    return 'single-column';
-  }, [selectedTemplate]);
-
-  const contentClassName = useMemo(() => cn(
-    'p-8 bg-white text-gray-800 max-w-4xl mx-auto space-y-6',
-    {
-      'border-l-4': templateLayout === 'modern',
-      'shadow-inner': templateLayout === 'professional', 
-      'bg-gradient-to-b from-gray-50 to-white': templateLayout === 'creative',
-    }
-  ), [templateLayout]);
-
-  // Apply template-specific border color for modern layout
-  const modernBorderStyle = useMemo(() => templateLayout === 'modern' ? {
-    borderLeftColor: templateStyles.colors.accent
-  } : {}, [templateLayout, templateStyles.colors.accent]);
-  
-  const clickableClassName = useMemo(() => isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 inline-block", [isPreviewMode]);
-  const clickableBlockClassName = useMemo(() => isPreviewMode ? "" : "cursor-pointer hover:bg-muted/50 p-1 -m-1 rounded transition-colors duration-150 block", [isPreviewMode]);
-
-  const handleClick = useCallback((callback: () => void) => {
-    if (!isPreviewMode) {
-      callback();
-    }
-  }, [isPreviewMode]);
-
-  return (
-    <div id="resume-preview">
-      <div style={{...contentStyle, ...modernBorderStyle}} className={contentClassName}>
-        {/* Header Section */}
-        <div className={cn("mb-6", {
-          "text-center": templateOptions.textAlign === 'center',
-          "text-inherit": templateOptions.textAlign !== 'center'
-        })}>
-          {personalInfo.photoUrl && (
-            <div className={cn("w-24 h-24 rounded-full overflow-hidden border-2 border-primary mb-3", templateOptions.textAlign === 'center' ? "mx-auto" : "mx-0")}>
-              <Image 
-                src={personalInfo.photoUrl} 
-                alt={personalInfo.name || 'Profile'} 
-                width={96} 
-                height={96} 
-                className="object-cover"
-                data-ai-hint="profile photo"
-              />
-            </div>
-          )}
-          <h1 
-            className={cn("text-3xl font-headline font-bold", clickableClassName)} 
-            style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 2.5)', 
-              color: 'var(--primary-color, #000000)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}
-            onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'name' }, personalInfo.name, 'Full Name', false))}
-          >
-            {personalInfo.name || "Your Name"}
-          </h1>
-          <div className={cn("flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 mt-2", {
-            'justify-center': templateOptions.textAlign === 'center',
-            'justify-start': templateOptions.textAlign === 'left',
-            'justify-end': templateOptions.textAlign === 'right',
-          })}>
-            {personalInfo.email && <Link href={`mailto:${personalInfo.email}`} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'email' }, personalInfo.email, 'Email Address', false))}><span className='flex items-center'><Mail className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.email}</span></Link>}
-            {personalInfo.phone && <Link href={`tel:${personalInfo.phone}`} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'phone' }, personalInfo.phone, 'Phone Number', false))}><span className='flex items-center'><Phone className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} /> {personalInfo.phone}</span></Link>}
-            {personalInfo.linkedin && <Link href={personalInfo.linkedin} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'linkedin' }, personalInfo.linkedin, 'LinkedIn Profile URL', false))}><span className='flex items-center'><Linkedin className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />LinkedIn</span></Link>}
-            {personalInfo.github && <Link href={personalInfo.github} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'github' }, personalInfo.github, 'GitHub Profile URL', false))}><span className='flex items-center'><Github className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Github</span></Link>}
-            {personalInfo.portfolio && <Link href={personalInfo.portfolio} className={cn("flex items-center", clickableClassName)} onClick={() => handleClick(() => onEdit({ section: 'personalInfo', field: 'portfolio' }, personalInfo.portfolio, 'Portfolio URL', false))}><span className='flex items-center'><Globe className="mr-1 h-3 w-3" style={{ color: 'var(--accent-color, #2E86AB)' }} />Portfolio</span></Link>}
-          </div>
+  const renderHeader = () => (
+    <div
+      className={headerClasses}
+      style={{
+        backgroundColor: templateOptions.sections?.header?.backgroundColor,
+        color: templateOptions.sections?.header?.textColor,
+        padding: templateOptions.sections?.header?.padding,
+        borderBottom: templateOptions.sections?.header?.borderBottom,
+        borderRadius: templateOptions.layout?.borderRadius,
+      }}
+    >
+      {personalInfo.photoUrl && templateOptions.showPhoto && (
+        <div
+          className={cn("w-24 h-24 rounded-full overflow-hidden border-2 mb-4", {
+            "mx-auto": templateOptions.layout?.headerAlignment === "center",
+            "mx-0": templateOptions.layout?.headerAlignment !== "center",
+          })}
+        >
+          <Image
+            src={personalInfo.photoUrl || "/placeholder.svg"}
+            alt={personalInfo.name || "Profile"}
+            width={96}
+            height={96}
+            className="object-cover"
+          />
         </div>
+      )}
 
-        {/* Summary Section */}
-        { (summary || templateOptions.textAlign ) && ( // always show if summary has content or if textAlign is set (to allow clicking placeholder)
-          <section>
-            <h2 className="text-lg font-headline font-semibold border-b-2 pb-1 mb-2 flex items-center" style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 1.3)',
-              color: 'var(--primary-color, #000000)',
-              borderBottomColor: 'var(--accent-color, #2E86AB)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}>
-              <FileTextIcon className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Professional Summary
-            </h2>
-            <p 
-              className={cn("text-gray-700 whitespace-pre-wrap", clickableBlockClassName)}
-              onClick={() => handleClick(() => onEdit({ section: 'summary' }, summary, 'Professional Summary', true))}
-            >
-              {summary || "Your professional summary..."}
-            </p>
-          </section>
-        )}
+      <h1
+        className={cn("mb-2", clickableClassName)}
+        style={{
+          fontSize: `calc(${templateOptions.fontSize} * 2.2)`,
+          fontWeight: templateOptions.fontWeight.bold,
+          color: templateOptions.sections.header.textColor || templateOptions.colors.primary,
+          marginBottom: templateOptions.spacing.itemSpacing,
+        }}
+        onClick={() =>
+          handleClick(() => onEdit({ section: "personalInfo", field: "name" }, personalInfo.name, "Full Name", false))
+        }
+      >
+        {personalInfo.name || "Your Name"}
+      </h1>
 
-        {/* Experience Section */}
-        {experience.length > 0 && (
-          <section>
-            <h2 className="text-lg font-headline font-semibold border-b-2 pb-1 mb-2 flex items-center" style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 1.3)',
-              color: 'var(--primary-color, #000000)',
-              borderBottomColor: 'var(--accent-color, #2E86AB)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}>
-              <Briefcase className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Work Experience
-            </h2>
-            {experience.map((exp, index) => (
-              <div key={exp.id} className="mb-3">
-                <h3 
-                  className={cn("text-md font-semibold text-gray-800", clickableClassName)}
-                  onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'jobTitle' }, exp.jobTitle, `Job Title for ${exp.company || 'Experience Item ' + (index+1)}`, false))}
-                >
-                  {exp.jobTitle || "Job Title"}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  <span className={clickableClassName} onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'company' }, exp.company,  `Company for ${exp.jobTitle || 'Experience Item ' + (index+1)}`, false))}>{exp.company || "Company"}</span> | <span className={clickableClassName} onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'location' }, exp.location, `Location for ${exp.jobTitle || 'Experience Item ' + (index+1)}`, false))}>{exp.location || "Location"}</span>
-                </p>
-                <p className="text-xs text-gray-500">
-                  <span className={clickableClassName} onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'startDate' }, exp.startDate, `Start Date for ${exp.jobTitle || 'Experience Item ' + (index+1)}`, false))}>{exp.startDate || "Start Date"}</span> - <span className={clickableClassName} onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'endDate' }, exp.endDate, `End Date for ${exp.jobTitle || 'Experience Item ' + (index+1)}`, false))}>{exp.endDate || "End Date"}</span>
-                </p>
-                <p 
-                  className={cn("mt-1 text-gray-700 whitespace-pre-wrap", clickableBlockClassName)}
-                  onClick={() => handleClick(() => onEdit({ section: 'experience', index, field: 'description' }, exp.description, `Description for ${exp.jobTitle || 'Experience Item ' + (index+1)}`, true))}>
-                  {exp.description || "Job description..."}
-                </p>
-              </div>
-            ))}
-          </section>
+      <div
+        className={cn("flex items-center flex-wrap gap-x-4 gap-y-1 text-sm", {
+          "justify-center": templateOptions.layout?.headerAlignment === "center",
+          "justify-start": templateOptions.layout?.headerAlignment === "left",
+          "justify-end": templateOptions.layout?.headerAlignment === "right",
+        })}
+      >
+        {personalInfo.email && (
+          <Link
+            href={`mailto:${personalInfo.email}`}
+            className={cn("resume-header-links", clickableClassName)}
+            style={{ color: templateOptions.sections?.content?.linkColor }}
+            onClick={() =>
+              handleClick(() =>
+                onEdit({ section: "personalInfo", field: "email" }, personalInfo.email, "Email Address", false),
+              )
+            }
+          >
+            <Mail className="mr-1 h-3 w-3" />
+            {personalInfo.email}
+          </Link>
         )}
-
-        {/* Education Section */}
-        {education.length > 0 && (
-          <section>
-            <h2 className="text-lg font-headline font-semibold border-b-2 pb-1 mb-2 flex items-center" style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 1.3)',
-              color: 'var(--primary-color, #000000)',
-              borderBottomColor: 'var(--accent-color, #2E86AB)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}>
-              <GraduationCap className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Education
-            </h2>
-            {education.map((edu, index) => (
-              <div key={edu.id} className="mb-3">
-                <h3 className={cn("text-md font-semibold text-gray-800", clickableClassName)} onClick={() => handleClick(() => onEdit({section: 'education', index, field: 'degree'}, edu.degree, `Degree for ${edu.institution || 'Education Item ' + (index+1)}`, false))}>{edu.degree || "Degree"}</h3>
-                <p className="text-sm text-gray-600"><span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'education', index, field: 'institution'}, edu.institution, `Institution for ${edu.degree || 'Education Item ' + (index+1)}`, false))}>{edu.institution || "Institution"}</span> | <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'education', index, field: 'location'}, edu.location, `Location for ${edu.degree || 'Education Item ' + (index+1)}`, false))}>{edu.location || "Location"}</span></p>
-                <p className="text-xs text-gray-500">Graduated: <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'education', index, field: 'graduationDate'}, edu.graduationDate, `Graduation Date for ${edu.degree || 'Education Item ' + (index+1)}`, false))}>{edu.graduationDate || "Graduation Date"}</span></p>
-                {edu.gpa && <p className="text-xs text-gray-500">GPA: <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'education', index, field: 'gpa'}, edu.gpa || '', `GPA for ${edu.degree || 'Education Item ' + (index+1)}`, false))}>{edu.gpa}</span></p>}
-              </div>
-            ))}
-          </section>
+        {personalInfo.phone && (
+          <Link
+            href={`tel:${personalInfo.phone}`}
+            className={cn("resume-header-links", clickableClassName)}
+            style={{ color: templateOptions.sections?.content?.linkColor }}
+            onClick={() =>
+              handleClick(() =>
+                onEdit({ section: "personalInfo", field: "phone" }, personalInfo.phone, "Phone Number", false),
+              )
+            }
+          >
+            <Phone className="mr-1 h-3 w-3" />
+            {personalInfo.phone}
+          </Link>
         )}
-
-        {/* Skills Section */}
-        {skills.length > 0 && (
-          <section>
-            <h2 className="text-lg font-headline font-semibold border-b-2 pb-1 mb-2 flex items-center" style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 1.3)',
-              color: 'var(--primary-color, #000000)',
-              borderBottomColor: 'var(--accent-color, #2E86AB)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}>
-              <Lightbulb className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Skills
-            </h2>
-            <ul className={cn("list-disc list-inside grid grid-cols-2 gap-1", {"pl-5": templateOptions.textAlign === 'left' || templateOptions.textAlign === 'right' })}>
-              {skills.map((skill, index) => (
-                <li key={`skill-${skill.id || index}`} className="text-gray-700">
-                  <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'skills', index, field: 'name'}, skill.name, `Skill Name` , false))}>{skill.name || "Skill Name"}</span> <span className="text-xs text-gray-500">({skill.proficiency})</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {personalInfo.linkedin && (
+          <Link
+            href={personalInfo.linkedin}
+            className={cn("resume-header-links", clickableClassName)}
+            style={{ color: templateOptions.sections?.content?.linkColor }}
+            onClick={() =>
+              handleClick(() =>
+                onEdit(
+                  { section: "personalInfo", field: "linkedin" },
+                  personalInfo.linkedin,
+                  "LinkedIn Profile URL",
+                  false,
+                ),
+              )
+            }
+          >
+            <Linkedin className="mr-1 h-3 w-3" />
+            LinkedIn
+          </Link>
         )}
-        
-        {/* Projects Section */}
-        {projects.length > 0 && (
-          <section>
-            <h2 className="text-lg font-headline font-semibold border-b-2 pb-1 mb-2 flex items-center" style={{ 
-              fontFamily: 'inherit', 
-              fontSize: 'calc(var(--font-size, 11px) * 1.3)',
-              color: 'var(--primary-color, #000000)',
-              borderBottomColor: 'var(--accent-color, #2E86AB)',
-              marginBottom: 'var(--item-spacing, 8px)'
-            }}>
-              <FolderGit2 className="mr-2 h-5 w-5" style={{ color: 'var(--accent-color, #2E86AB)' }} /> Projects
-            </h2>
-            {projects.map((project, index) => (
-              <div key={`project-${project.id || index}`} className="mb-3">
-                <h3 className={cn("text-md font-semibold text-gray-800", clickableClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'name'}, project.name, `Project Name for ${project.name || 'Project ' + (index+1)}`, false))}>{project.name || "Project Name"}</h3>
-                <p className="text-sm text-gray-600">
-                  <span className={clickableClassName} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'technologies'}, project.technologies, `Technologies for ${project.name || 'Project ' + (index+1)}`, false))}>{project.technologies || "Technologies"}</span>
-                </p>
-                <p className={cn("mt-1 text-gray-700 whitespace-pre-wrap", clickableBlockClassName)} onClick={() => handleClick(() => onEdit({section: 'projects', index, field: 'description'}, project.description, `Description for ${project.name || 'Project ' + (index+1)}`, true))}>{project.description || "Project description..."}</p>
-              </div>
-            ))}
-          </section>
+        {personalInfo.github && (
+          <Link
+            href={personalInfo.github}
+            className={cn("resume-header-links", clickableClassName)}
+            style={{ color: templateOptions.sections.content.linkColor }}
+            onClick={() =>
+              handleClick(() =>
+                onEdit({ section: "personalInfo", field: "github" }, personalInfo.github, "GitHub Profile URL", false),
+              )
+            }
+          >
+            <Github className="mr-1 h-3 w-3" />
+            GitHub
+          </Link>
         )}
-
+        {personalInfo.portfolio && (
+          <Link
+            href={personalInfo.portfolio}
+            className={cn("resume-header-links", clickableClassName)}
+            style={{ color: templateOptions.sections?.content?.linkColor }}
+            onClick={() =>
+              handleClick(() =>
+                onEdit({ section: "personalInfo", field: "portfolio" }, personalInfo.portfolio, "Portfolio URL", false),
+              )
+            }
+          >
+            <Globe className="mr-1 h-3 w-3" />
+            Portfolio
+          </Link>
+        )}
       </div>
     </div>
-  );
-};
+  )
 
-export default ResumePreview;
+  const renderSection = (title: string, icon: React.ReactNode, children: React.ReactNode) => (
+    <section style={{ marginBottom: templateOptions.spacing.sectionSpacing }}>
+      <h2
+        className={sectionHeaderClasses}
+        style={{
+          fontSize: templateOptions.sections?.sectionHeaders?.fontSize,
+          color: templateOptions.sections?.sectionHeaders?.color,
+          borderBottomColor: templateOptions.colors.accent,
+          borderBottom: templateOptions.layout?.sectionDividers
+            ? templateOptions.sections?.sectionHeaders?.borderBottom
+            : "none",
+          fontWeight: templateOptions.sections?.sectionHeaders?.fontWeight,
+          textTransform: templateOptions.sections?.sectionHeaders?.textTransform as any,
+        }}
+      >
+        {icon}
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+
+  return (
+    <div id="resume-preview" className="resume-container">
+      <div style={generatedStyles} className={layoutClasses}>
+        {renderHeader()}
+
+        {/* Render sections based on sectionsOrder */}
+        {templateOptions.sectionsOrder.map((sectionKey) => {
+          if (!templateOptions.sectionsVisibility[sectionKey]) return null
+
+          switch (sectionKey) {
+            case "summary":
+              return summary
+                ? renderSection(
+                    "Professional Summary",
+                    <FileTextIcon className="mr-2 h-5 w-5" style={{ color: templateOptions.colors.accent }} />,
+                    <p
+                      className={cn("whitespace-pre-wrap", clickableBlockClassName)}
+                      style={{
+                        color: templateOptions.colors.text,
+                        marginBottom: templateOptions.spacing?.paragraphSpacing,
+                      }}
+                      onClick={() =>
+                        handleClick(() => onEdit({ section: "summary" }, summary, "Professional Summary", true))
+                      }
+                    >
+                      {summary}
+                    </p>,
+                  )
+                : null
+
+            case "experience":
+              return experience.length > 0
+                ? renderSection(
+                    "Work Experience",
+                    <Briefcase className="mr-2 h-5 w-5" style={{ color: templateOptions.colors.accent }} />,
+                    <div className="space-y-4">
+                      {experience.map((exp, index) => (
+                        <div key={exp.id} style={{ marginBottom: templateOptions.spacing.itemSpacing }}>
+                          <h3
+                            className={cn("font-semibold", clickableClassName)}
+                            style={{
+                              color: templateOptions.colors?.primary,
+                              fontWeight: templateOptions.fontWeight?.bold,
+                            }}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit(
+                                  { section: "experience", index, field: "jobTitle" },
+                                  exp.jobTitle,
+                                  `Job Title for ${exp.company || "Experience Item " + (index + 1)}`,
+                                  false,
+                                ),
+                              )
+                            }
+                          >
+                            {exp.jobTitle || "Job Title"}
+                          </h3>
+                          <p className="text-sm" style={{ color: templateOptions.colors?.secondary }}>
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "experience", index, field: "company" },
+                                    exp.company,
+                                    `Company for ${exp.jobTitle || "Experience Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {exp.company || "Company"}
+                            </span>{" "}
+                            |{" "}
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "experience", index, field: "location" },
+                                    exp.location,
+                                    `Location for ${exp.jobTitle || "Experience Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {exp.location || "Location"}
+                            </span>
+                          </p>
+                          <p className="text-xs" style={{ color: templateOptions.colors.muted }}>
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "experience", index, field: "startDate" },
+                                    exp.startDate,
+                                    `Start Date for ${exp.jobTitle || "Experience Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {exp.startDate || "Start Date"}
+                            </span>{" "}
+                            -{" "}
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "experience", index, field: "endDate" },
+                                    exp.endDate,
+                                    `End Date for ${exp.jobTitle || "Experience Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {exp.endDate || "End Date"}
+                            </span>
+                          </p>
+                          <p
+                            className={cn("mt-2 whitespace-pre-wrap", clickableBlockClassName)}
+                            style={{ color: templateOptions.colors.text }}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit(
+                                  { section: "experience", index, field: "description" },
+                                  exp.description,
+                                  `Description for ${exp.jobTitle || "Experience Item " + (index + 1)}`,
+                                  true,
+                                ),
+                              )
+                            }
+                          >
+                            {exp.description || "Job description..."}
+                          </p>
+                        </div>
+                      ))}
+                    </div>,
+                  )
+                : null
+
+            case "education":
+              return education.length > 0
+                ? renderSection(
+                    "Education",
+                    <GraduationCap className="mr-2 h-5 w-5" style={{ color: templateOptions.colors.accent }} />,
+                    <div className="space-y-3">
+                      {education.map((edu, index) => (
+                        <div key={edu.id} style={{ marginBottom: templateOptions.spacing.itemSpacing }}>
+                          <h3
+                            className={cn("font-semibold", clickableClassName)}
+                            style={{
+                              color: templateOptions.colors.primary,
+                              fontWeight: templateOptions.fontWeight.bold,
+                            }}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit(
+                                  { section: "education", index, field: "degree" },
+                                  edu.degree,
+                                  `Degree for ${edu.institution || "Education Item " + (index + 1)}`,
+                                  false,
+                                ),
+                              )
+                            }
+                          >
+                            {edu.degree || "Degree"}
+                          </h3>
+                          <p className="text-sm" style={{ color: templateOptions.colors.secondary }}>
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "education", index, field: "institution" },
+                                    edu.institution,
+                                    `Institution for ${edu.degree || "Education Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {edu.institution || "Institution"}
+                            </span>{" "}
+                            |{" "}
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "education", index, field: "location" },
+                                    edu.location,
+                                    `Location for ${edu.degree || "Education Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {edu.location || "Location"}
+                            </span>
+                          </p>
+                          <p className="text-xs" style={{ color: templateOptions.colors.muted }}>
+                            Graduated:{" "}
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "education", index, field: "graduationDate" },
+                                    edu.graduationDate,
+                                    `Graduation Date for ${edu.degree || "Education Item " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {edu.graduationDate || "Graduation Date"}
+                            </span>
+                          </p>
+                          {edu.gpa && (
+                            <p className="text-xs" style={{ color: templateOptions.colors.muted }}>
+                              GPA:{" "}
+                              <span
+                                className={clickableClassName}
+                                onClick={() =>
+                                  handleClick(() =>
+                                    onEdit(
+                                      { section: "education", index, field: "gpa" },
+                                      edu.gpa || "",
+                                      `GPA for ${edu.degree || "Education Item " + (index + 1)}`,
+                                      false,
+                                    ),
+                                  )
+                                }
+                              >
+                                {edu.gpa}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>,
+                  )
+                : null
+
+            case "skills":
+              return skills.length > 0
+                ? renderSection(
+                    "Skills",
+                    <Lightbulb className="mr-2 h-5 w-5" style={{ color: templateOptions.colors.accent }} />,
+                    <ul
+                      className="grid grid-cols-2 gap-1"
+                      style={{
+                        listStyleType: templateOptions.sections.content.bulletStyle,
+                        paddingLeft: templateOptions.sections.content.bulletStyle !== "none" ? "1.25rem" : "0",
+                      }}
+                    >
+                      {skills.map((skill, index) => (
+                        <li key={`skill-${skill.id || index}`} style={{ color: templateOptions.colors.text }}>
+                          <span
+                            className={clickableClassName}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit({ section: "skills", index, field: "name" }, skill.name, `Skill Name`, false),
+                              )
+                            }
+                          >
+                            {skill.name || "Skill Name"}
+                          </span>{" "}
+                          <span className="text-xs" style={{ color: templateOptions.colors.muted }}>
+                            ({skill.proficiency})
+                          </span>
+                        </li>
+                      ))}
+                    </ul>,
+                  )
+                : null
+
+            case "projects":
+              return projects.length > 0
+                ? renderSection(
+                    "Projects",
+                    <FolderGit2 className="mr-2 h-5 w-5" style={{ color: templateOptions.colors.accent }} />,
+                    <div className="space-y-3">
+                      {projects.map((project, index) => (
+                        <div
+                          key={`project-${project.id || index}`}
+                          style={{ marginBottom: templateOptions.spacing.itemSpacing }}
+                        >
+                          <h3
+                            className={cn("font-semibold", clickableClassName)}
+                            style={{
+                              color: templateOptions.colors.primary,
+                              fontWeight: templateOptions.fontWeight.bold,
+                            }}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit(
+                                  { section: "projects", index, field: "name" },
+                                  project.name,
+                                  `Project Name for ${project.name || "Project " + (index + 1)}`,
+                                  false,
+                                ),
+                              )
+                            }
+                          >
+                            {project.name || "Project Name"}
+                          </h3>
+                          <p className="text-sm" style={{ color: templateOptions.colors.secondary }}>
+                            <span
+                              className={clickableClassName}
+                              onClick={() =>
+                                handleClick(() =>
+                                  onEdit(
+                                    { section: "projects", index, field: "technologies" },
+                                    project.technologies,
+                                    `Technologies for ${project.name || "Project " + (index + 1)}`,
+                                    false,
+                                  ),
+                                )
+                              }
+                            >
+                              {project.technologies || "Technologies"}
+                            </span>
+                          </p>
+                          <p
+                            className={cn("mt-1 whitespace-pre-wrap", clickableBlockClassName)}
+                            style={{ color: templateOptions.colors.text }}
+                            onClick={() =>
+                              handleClick(() =>
+                                onEdit(
+                                  { section: "projects", index, field: "description" },
+                                  project.description,
+                                  `Description for ${project.name || "Project " + (index + 1)}`,
+                                  true,
+                                ),
+                              )
+                            }
+                          >
+                            {project.description || "Project description..."}
+                          </p>
+                        </div>
+                      ))}
+                    </div>,
+                  )
+                : null
+
+            default:
+              return null
+          }
+        })}
+      </div>
+    </div>
+  )
+}
+
+export default ResumePreview
